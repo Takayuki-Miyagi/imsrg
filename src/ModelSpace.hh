@@ -259,6 +259,7 @@ class ModelSpace
 
    // Fields for atomic system
    std::string basis; // basis function, Hy, HO, Laguerre, ...
+   std::string filling_scheme="LS";
    std::string system="nuclear";
 
 
@@ -386,6 +387,7 @@ class ModelSpace
    std::map<index_t,double> GetAtomicOrbitals(int N);
    void GetZNelefromString(std::string str, int& Z, int& Nele);
    void SetUpAtomicOrbits();
+   void SetFillingScheme(std::string str) {filling_scheme=str;};
    void ParseCommaSeparatedValenceSpaceAtom(std::string, std::set<index_t>&, std::set<index_t>&);
    std::vector<index_t> AtomicString2Index( std::vector<std::string> );
 

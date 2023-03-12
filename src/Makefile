@@ -11,9 +11,9 @@ ALL = libIMSRG.so imsrg++
 INSTDIR = $(HOME)
 INCLUDE   = -I./armadillo
 FLAGS     = -O3 -march=native -std=c++11 -fopenmp -fPIC
-LIBS = -lopenblas -lgsl -lz
+#LIBS = -lopenblas -lgsl -lz
 LIBS = -lblas -lgsl -lz
-
+PYTHON=off
 # I assume we're running on linux
 OS = LINUX
 # But in case we're crazy enough to run on MacOS, might as well check...
@@ -48,10 +48,9 @@ THEHOST = $(shell if [ `hostname|grep jrl` ]; then echo jureca; elif [ `hostname
 
 
 ifeq ($(OS),MACOS)
-#  FLAGS     = -Xpreprocessor -fopenmp -O3 -march=native -std=c++11 -fPIC
-  FLAGS     = -Xpreprocessor -fopenmp -O3  -std=c++11 -fPIC
+  FLAGS     = -Xpreprocessor -fopenmp -O3  -std=c++11 -fPIC -I/usr/local/include -L/usr/local/lib
   LIBS += -lomp
-  PYTHONFLAGS = -I./pybind11/include $(shell python-config --cflags | sed -e 's/-arch i386//')
+  PYTHONFLAGS =  $(shell python-config --cflags | sed -e 's/-arch i386//')
 endif
 
 

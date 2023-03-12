@@ -42,6 +42,7 @@ namespace Atom
     std::string hunter_gatherer = parameters.s("hunter_gatherer");
     std::string relativistic_correction = parameters.s("relativistic_correction");
     std::string HamType = parameters.s("LECs");
+    std::string filling_scheme = parameters.s("filling_scheme");
     bool use_NAT_occupations = (parameters.s("use_NAT_occupations")=="true") ? true : false;
     bool me_scale = (parameters.s("me_scale")=="true") ? true : false;
     bool find_best_zeta = (parameters.s("find_best_zeta")=="true") ? true : false;
@@ -140,6 +141,7 @@ namespace Atom
     ModelSpace modelspace;
     modelspace.SetLmax(lmax);
     modelspace.SetHbarOmega(hw);
+    modelspace.SetFillingScheme(filling_scheme);
     modelspace.InitAtomicSpace(eMax, basis_type, reference, valence_space);
     if (nsteps < 0) nsteps = modelspace.valence.size()>0 ? 2 : 1;
     Operator Hbare = Operator(modelspace,0,0,0,2);

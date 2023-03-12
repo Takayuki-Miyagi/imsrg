@@ -117,7 +117,7 @@ std::map< std::string, std::vector<std::string> > ModelSpace::ValenceSpaces  {
 ModelSpace::ModelSpace()
 :  Emax(0), E2max(0), E3max(0), Lmax(0), Lmax2(0), Lmax3(0), OneBodyJmax(0), TwoBodyJmax(0), ThreeBodyJmax(0), EmaxUnocc(0), norbits(0),
   hbar_omega(20), target_mass(16), sixj_has_been_precalculated(false), moshinsky_has_been_precalculated(false),
-  scalar_transform_first_pass(true), tensor_transform_first_pass(40,true), single_species(false)
+  scalar_transform_first_pass(true), tensor_transform_first_pass(40,true), single_species(false), filling_scheme("LS")
 {
    SetUpOrbits();
 //  std::cout << "In default constructor" << std::endl;
@@ -157,7 +157,7 @@ ModelSpace::ModelSpace(const ModelSpace& ms)
    sixj_has_been_precalculated(ms.sixj_has_been_precalculated),
    moshinsky_has_been_precalculated(ms.moshinsky_has_been_precalculated),
    scalar_transform_first_pass(true), tensor_transform_first_pass(40,true), single_species(ms.single_species),
-   system(ms.system)
+   system(ms.system), filling_scheme(ms.filling_scheme)
 {
    for (TwoBodyChannel& tbc : TwoBodyChannels)   tbc.modelspace = this;
    for (TwoBodyChannel_CC& tbc_cc : TwoBodyChannels_CC)   tbc_cc.modelspace = this;
@@ -192,7 +192,8 @@ ModelSpace::ModelSpace(ModelSpace&& ms)
    sixj_has_been_precalculated(ms.sixj_has_been_precalculated),
    moshinsky_has_been_precalculated(ms.moshinsky_has_been_precalculated),
    scalar_transform_first_pass(true), tensor_transform_first_pass(40,true), single_species(ms.single_species),
-   system(std::move(ms.system))
+   system(std::move(ms.system)),
+   filling_scheme(std::move(ms.filling_scheme))
 {
    for (TwoBodyChannel& tbc : TwoBodyChannels)   tbc.modelspace = this;
    for (TwoBodyChannel_CC& tbc_cc : TwoBodyChannels_CC)   tbc_cc.modelspace = this;
@@ -1933,12 +1934,28 @@ std::map<index_t,double> ModelSpace::GetAtomicOrbitals(int N_ele)
     for (int l=e; l>=1; --l){
       int n = e - l - std::max(0,l-1);
       if(n < 0) continue;
-      for (int j2=std::abs(2*l-1); j2<=2*l+1; j2+=2)
-      {
-        d = std::min(N_ele-N, j2+1);
-        holes[Index1(n, l, j2, -1)] = d / (j2+1.0);
+
+      // LS scheme
+      if(filling_scheme=="LS" or filling_scheme=="ls") {
+        d = std::min(N_ele-N, 2*(2*l+1));
+        if(l==0) holes[Index1(n, l, 1, -1)] = d / 2;
+        if(l>0) {
+          holes[Index1(n, l, 2*l-1, -1)] = d / (2*(2*l+1.0));
+          holes[Index1(n, l, 2*l+1, -1)] = d / (2*(2*l+1.0));
+        }
         N += d;
         if(N==N_ele) return holes;
+      }
+
+      // jj scheme
+      if(filling_scheme=="JJ" or filling_scheme=="jj") {
+        for (int j2=std::abs(2*l-1); j2<=2*l+1; j2+=2)
+        {
+          d = std::min(N_ele-N, j2+1);
+          holes[Index1(n, l, j2, -1)] = d / (j2+1.0);
+          N += d;
+          if(N==N_ele) return holes;
+        }
       }
     }
   }
