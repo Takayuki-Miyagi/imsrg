@@ -162,6 +162,13 @@ void TwoBodyME::SetTBME(int ch_bra, int ch_ket, int a, int b, int c, int d, doub
    double phase = 1;
    if (a>b) phase *= tbc_bra.GetKet(bra_ind).Phase(tbc_bra.J);
    if (c>d) phase *= tbc_ket.GetKet(ket_ind).Phase(tbc_ket.J);
+   if( ch_bra > ch_ket )
+   {
+     std::swap(ch_bra, ch_ket);
+     std::swap(bra_ind, ket_ind);
+     phase *= modelspace->phase(tbc_bra.J-tbc_ket.J);
+   }
+
    GetMatrix(ch_bra,ch_ket)(bra_ind,ket_ind) = phase * tbme;
    if (ch_ket != ch_bra) return;
    if (hermitian and ch_bra==ch_ket) GetMatrix(ch_ket,ch_bra)(ket_ind,bra_ind) = phase * tbme;

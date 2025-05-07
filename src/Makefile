@@ -19,9 +19,8 @@ FLAGS     = -O3  -std=$(CXXSTD) -fopenmp -fPIC  # -march=native
 FLAGS    += $(WARNFLAGS)
 LIBS = -lopenblas -lgsl -lz
 LDFLAGS = -L$(PWD) 
-INCLUDE += -I$(EXTERN)/half/include
+INCLUDE += -I$(EXTERN)/half/include 
 SOFLAGS = -shared $(FLAGS)
-#LIBS = -lblas -lgsl -lz
 LD_DIR=$(HOME)/lib
 
 BOOST_SRC = $(EXTERN)/boost_src

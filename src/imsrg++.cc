@@ -96,6 +96,7 @@ int main(int argc, char** argv)
   std::string denominator_partitioning = parameters.s("denominator_partitioning");
   std::string NAT_order = parameters.s("NAT_order");
 
+  bool approx_3f2 = parameters.s("approx_3f2") == "true";
   bool use_brueckner_bch = parameters.s("use_brueckner_bch") == "true";
   bool nucleon_mass_correction = parameters.s("nucleon_mass_correction") == "true";
   bool relativistic_correction = parameters.s("relativistic_correction") == "true";
@@ -793,6 +794,7 @@ int main(int argc, char** argv)
         if (opff.file2name != "")
         {   
             Operator optmp = rw.ReadOperator2b_Miyagi( opff.file2name, modelspace );
+            op.OneBody = optmp.OneBody;
             op.TwoBody = optmp.TwoBody;
         }
         if ( opff.r>2 and opff.file3name != "")  rw.Read_Darmstadt_3body( opff.file3name, op,  file3e1max,file3e2max,file3e3max);
@@ -1041,6 +1043,12 @@ int main(int argc, char** argv)
   imsrgsolver.SetdOmega(domega);
   imsrgsolver.SetOmegaNormMax(omega_norm_max);
   imsrgsolver.SetODETolerance(ode_tolerance);
+  if(approx_3f2) {
+    imsrgsolver.SetHunterGatherer(true);
+    BCH::SetUseFactorizedCorrection(true);
+    Commutator::FactorizedDoubleCommutator::SetUse_1b_Intermediates(true);
+    Commutator::FactorizedDoubleCommutator::SetUse_2b_Intermediates(false);
+  }
   if (denominator_delta_orbit != "none")
     imsrgsolver.SetDenominatorDeltaOrbit(denominator_delta_orbit);
 
@@ -1244,28 +1252,41 @@ int main(int argc, char** argv)
   }
   if ( renormal_order )
   {
+    Operator Hs = HNO;
+    if(approx_3f2){
+      Commutator::FactorizedDoubleCommutator::SetUse_1b_Intermediates(true);
+      Commutator::FactorizedDoubleCommutator::SetUse_2b_Intermediates(true);
+      Hs = imsrgsolver.Transform(HNO);
+      double dE_triple = imsrgsolver.CalculatePerturbativeTriples();
+      std::cout << "Perturbative triples: " << std::setw(16) << std::setprecision(8) << dE_triple << std::endl;
+      Hs.ZeroBody += dE_triple;
+    }
+    else{
+      Hs = imsrgsolver.GetH_s();
+    }
 
-    HNO = imsrgsolver.GetH_s();
+
 
 //    int nOmega = imsrgsolver.GetOmegaSize() + imsrgsolver.GetNOmegaWritten();
 //    std::cout << "Undoing NO wrt A=" << modelspace.GetAref() << " Z=" << modelspace.GetZref() << std::endl;
     std::cout << "Undoing NO wrt A=" << modelspace_imsrg.GetAref() << " Z=" << modelspace_imsrg.GetZref() << std::endl;
     std::cout << "Before doing so, the spes are " << std::endl;
-//    for ( auto i : modelspace.all_orbits ) std::cout << "  " << i << " : " << HNO.OneBody(i,i) << std::endl;
-    for ( auto i : modelspace_imsrg.all_orbits ) std::cout << "  " << i << " : " << HNO.OneBody(i,i) << std::endl;
+//    for ( auto i : modelspace.all_orbits ) std::cout << "  " << i << " : " << Hs.OneBody(i,i) << std::endl;
+    for ( auto i : modelspace_imsrg.all_orbits ) std::cout << "  " << i << " : " << Hs.OneBody(i,i) << std::endl;
     if (IMSRG3)
     {
       std::cout << "Re-normal-ordering wrt the core. For now, we just throw away the 3N at this step." << std::endl;
-      HNO.SetNumberLegs(4);
-      HNO.SetParticleRank(2);
+      Hs.SetNumberLegs(4);
+      Hs.SetParticleRank(2);
     }
 
-    HNO = HNO.UndoNormalOrdering();
-    HNO.SetModelSpace(ms2);
+    Hs = Hs.UndoNormalOrdering();
+    Hs.SetModelSpace(ms2);
     std::cout << "Doing NO wrt A=" << ms2.GetAref() << " Z=" << ms2.GetZref() << "  norbits = " << ms2.GetNumberOrbits() << std::endl;
-    HNO = HNO.DoNormalOrdering();
+    Hs = Hs.DoNormalOrdering();
 
-    imsrgsolver.FlowingOps[0] = HNO;
+    imsrgsolver.FlowingOps[0] = Hs;
+
 
 // More flowing is unnecessary, since things should stay decoupled.
 //    imsrgsolver.SetHin(HNO);
@@ -1347,7 +1368,13 @@ int main(int argc, char** argv)
   }
   else // single ref. just print the zero body pieces out. (maybe check if its magnus?)
   {
-    std::cout << "Core Energy = " << std::setprecision(6) << imsrgsolver.GetH_s().ZeroBody << std::endl;
+    double dE_triple = 0.0;
+    if(approx_3f2){
+      Commutator::FactorizedDoubleCommutator::SetUse_1b_Intermediates(true);
+      Commutator::FactorizedDoubleCommutator::SetUse_2b_Intermediates(true);
+      double dE_triple = imsrgsolver.CalculatePerturbativeTriples();
+    }
+    std::cout << "Core Energy = " << std::setprecision(6) << imsrgsolver.GetH_s().ZeroBody + dE_triple << std::endl;
     if ( method != "magnus")
     {
       for (index_t i=0;i<ops.size();++i)
@@ -1418,6 +1445,7 @@ int main(int argc, char** argv)
           if (opff.file2name != "")
           {   
               Operator optmp = rw.ReadOperator2b_Miyagi( opff.file2name, modelspace );
+              op.OneBody = optmp.OneBody;
               op.TwoBody = optmp.TwoBody;
           }
           if ( opff.r>2 and opff.file3name != "")  rw.Read_Darmstadt_3body( opff.file3name, op,  file3e1max,file3e2max,file3e3max);
@@ -1520,7 +1548,7 @@ int main(int argc, char** argv)
        std::cout << "writing scalar files " << std::endl;
       if (valence_file_format == "tokyo")
       {
-        rw.WriteTokyo(op,intfile+opname+".snt", "op");
+        rw.WriteTokyo(op,intfile+"_"+opname+".snt", "op");
       }
       else
       {
@@ -1542,7 +1570,7 @@ int main(int argc, char** argv)
            op.MakeReduced();
         }
 
-        rw.WriteTensorTokyo(intfile+opname+"_2b.snt",op);
+        rw.WriteTensorTokyo(intfile+"_"+opname+".snt",op);
       }
       else
       {
@@ -1582,7 +1610,7 @@ int main(int argc, char** argv)
          std::cout << "writing scalar files " << std::endl;
         if (valence_file_format == "tokyo")
         {
-          rw.WriteTokyo(op,intfile+opname+".snt", "op");
+          rw.WriteTokyo(op,intfile+"_"+opname+".snt", "op");
         }
         else
         {
@@ -1599,7 +1627,7 @@ int main(int argc, char** argv)
          std::cout << "writing tensor files " << std::endl;
         if (valence_file_format == "tokyo")
         {
-          rw.WriteTensorTokyo(intfile+opname+"_2b.snt",op);
+          rw.WriteTensorTokyo(intfile+"_"+opname+".snt",op);
         }
         else
         {
