@@ -80,6 +80,7 @@ namespace imsrg_util
           std::istringstream( opnamesplit[1] ) >> Rms ;
           theop =  ISDipoleOp(modelspace,3,1,Rms) ;
       }
+      else if (opname == "E0")            theop =  E0Op(modelspace) ;
       else if (opname == "E1")            theop =  ElectricMultipoleOp(modelspace,1) ;
       else if (opname == "E2")            theop =  ElectricMultipoleOp(modelspace,2) ;
       else if (opname == "E3")            theop =  ElectricMultipoleOp(modelspace,3) ;
@@ -123,6 +124,8 @@ namespace imsrg_util
       else if (opname == "VBareDelta")    theop =  BareDelta( modelspace );
       else if (opname == "OccRef")        theop =  NumberOpRef( modelspace );
       else if (opname == "LdotS")         theop =  LdotS_Op( modelspace);
+      else if (opname == "DGT")           theop = M0nu::DGT_Op(modelspace);
+      else if (opname == "Anapole")       theop = AnapoleMoment(modelspace);
       else if (opnamesplit[0] =="VGaus")
       {
          double sigma = 1.0;
@@ -325,20 +328,153 @@ namespace imsrg_util
       }
       else if (opnamesplit[0] == "M0nu") // Neutrinoless Double Beta Decay Operators   format e.g.  M0nu_GT_7.72_none or M0nu_F_12.6_AV18
       {
-        double Eclosure;
+        
         std::string M0nuopname = opnamesplit[1];
-        std::istringstream(opnamesplit[2]) >> Eclosure;
-        std::string src = opnamesplit[3];
-        std::map<std::string, Operator (*)(ModelSpace&, double, std::string) > M0nuop = {
-              {"GT", &M0nu::GamowTeller},
-              {"F",  &M0nu::Fermi},
-              {"T",  &M0nu::Tensor},
-             };
-        if ( M0nuop.find(M0nuopname) != M0nuop.end() )
+        std::map<std::string, Operator (*)(ModelSpace&, double, std::string, std::function<double(double)>)> OPList{
+            {"GT", &M0nu::GamowTeller},
+            {"F", &M0nu::Fermi},
+            {"T", &M0nu::Tensor}};
+
+        if (M0nuopname != "C")
         {
-        theop =  M0nuop[M0nuopname](modelspace,Eclosure,src);
+          double Eclosure;
+          std::istringstream(opnamesplit[2]) >> Eclosure;
+          std::string src = opnamesplit[3];
+          if (opnamesplit.size() == 4)
+          {
+            std::map<std::string, std::function<double(double)>> FormFactorList{
+                {"GT",M0nu::GTFormFactor},
+                {"F", M0nu::FermiFormFactor},
+                {"T", M0nu::TensorFormFactor}
+            };
+            theop = OPList[M0nuopname](modelspace, Eclosure, src, FormFactorList[M0nuopname]);
+          }
+          else if (opnamesplit.size() == 5)
+          { 
+            std::string formfactor = opnamesplit[4];
+            if (M0nuopname == "GT")
+            {
+              if (formfactor == "AA")
+              {
+                theop = M0nu::GamowTeller(modelspace, Eclosure, src, M0nu::hGT_AA);
+              }
+              else if (formfactor == "AP")
+              {
+                theop = M0nu::GamowTeller(modelspace, Eclosure, src, M0nu::hGT_AP);
+              }
+              else if (formfactor == "PP")
+              {
+                theop = M0nu::GamowTeller(modelspace, Eclosure, src, M0nu::hGT_PP);
+              }
+              else if (formfactor == "MM")
+              {
+                theop = M0nu::GamowTeller(modelspace, Eclosure, src, M0nu::hGT_MM);
+              }
+            }
+            else if (M0nuopname == "T")
+            {
+              if (formfactor == "AA")
+              {
+                theop = M0nu::Tensor(modelspace, Eclosure, src, M0nu::hT_AA);
+              }
+              else if (formfactor == "AP")
+              {
+                theop = M0nu::Tensor(modelspace, Eclosure, src, M0nu::hT_AP);
+              }
+              else if (formfactor == "PP")
+              {
+                theop = M0nu::Tensor(modelspace, Eclosure, src, M0nu::hT_PP);
+              }
+              else if (formfactor == "MM")
+              {
+                theop = M0nu::Tensor(modelspace, Eclosure, src, M0nu::hT_MM);
+              }
+            }
+          }
+        }
+        else
+        {
+          double regulator_cutoff;
+          std::istringstream(opnamesplit[2]) >> regulator_cutoff;
+          int regulator_power;
+          std::istringstream(opnamesplit[3]) >> regulator_power;
+          theop = M0nu::Contact(modelspace, regulator_cutoff, regulator_power);
+        }
+        
+      }
+      else if (opnamesplit[0] == "M0nuHeavy") // Neutrinoless Double Beta Decay Operators   format e.g.  M0nu_GT_7.72_none or M0nu_F_12.6_AV18
+      {
+        std::string M0nuopname = opnamesplit[1];
+        std::string src = opnamesplit[2];
+        std::string formfactor = opnamesplit[3];
+        if (M0nuopname == "GT")
+        {
+          if (formfactor == "AA")
+          {
+            theop = M0nu::GamowTellerHeavy(modelspace, src, M0nu::hGT_AA);
+          }
+          else if (formfactor == "AP")
+          {
+            theop = M0nu::GamowTellerHeavy(modelspace, src, M0nu::hGT_AP);
+          }
+          else if (formfactor == "PP")
+          {
+            theop = M0nu::GamowTellerHeavy(modelspace, src, M0nu::hGT_PP);
+          }
+        }
+        else if (M0nuopname == "F")
+        {
+          theop = M0nu::FermiHeavy(modelspace, src, M0nu::hF_VV);
+        }
+        else if (M0nuopname == "T")
+        {
+
+          if (formfactor == "AP")
+          {
+            theop = M0nu::TensorHeavy(modelspace, src, M0nu::hT_AP);
+          }
+          else if (formfactor == "PP")
+          {
+            theop = M0nu::TensorHeavy(modelspace, src, M0nu::hT_PP);
+          }
         }
       }
+      else if (opnamesplit[0] == "M0nuIntegrand") // Neutrinoless Double Beta Decay Operators   format e.g.  M0nu_GT_7.72_none or M0nu_F_12.6_AV18
+      {
+        std::string M0nuopname = opnamesplit[1];
+        std::map<std::string, Operator (*)(ModelSpace &, double, std::string, std::function<double(double)>, int, int)> OPList{
+            {"GT", &M0nu::GamowTeller_integrand},
+            {"F", &M0nu::Fermi_integrand},
+            {"T", &M0nu::Tensor_integrand}};
+        if (M0nuopname != "C")
+        {
+          double Eclosure;
+          int p;
+          int pp;
+          std::istringstream(opnamesplit[2]) >> Eclosure;
+          std::string src = opnamesplit[3];
+          std::istringstream(opnamesplit[4]) >> p;
+          std::istringstream(opnamesplit[5]) >> pp;
+          std::map<std::string, std::function<double(double)>> FormFactorList{
+              {"GT", M0nu::GTFormFactor},
+              {"F", M0nu::FermiFormFactor},
+              {"T", M0nu::TensorFormFactor}};
+          theop = OPList[M0nuopname](modelspace, Eclosure, src, FormFactorList[M0nuopname], p, pp); 
+        }
+        else
+        {
+          double regulator_cutoff;
+          std::istringstream(opnamesplit[2]) >> regulator_cutoff;
+          int regulator_power;
+          std::istringstream(opnamesplit[3]) >> regulator_power;
+          int p;
+          int pp;
+          std::istringstream(opnamesplit[4]) >> p;
+          std::istringstream(opnamesplit[5]) >> pp;
+          theop = M0nu::Contact_integrand(modelspace, regulator_cutoff, regulator_power, p, pp);
+        }
+      }
+
       else if (opnamesplit[0] == "VWS")
       {
          double V0,R0,a0;
@@ -352,6 +488,12 @@ namespace imsrg_util
          double hw_trap;
          std::istringstream( opnamesplit[1] ) >> hw_trap;
          theop = HOtrap_Op( modelspace, hw_trap);
+      }
+      else if (opnamesplit[0] == "Schiff")
+      {
+        double R;
+        std::istringstream( opnamesplit[1]) >> R;
+        theop =  SchiffOp( modelspace,3,1,R);
       }
       else if (opnamesplit[0] == "VPT" )
       {
@@ -368,6 +510,26 @@ namespace imsrg_util
           return theop;
         }
         theop = TViolatingPotential_Op( modelspace, LECs );
+      }
+      else if (opnamesplit[0] == "M0nuR") // Radial dependance of GT part of M0nu
+      {
+        double Eclosure;
+        double r12;
+        std::istringstream(opnamesplit[1]) >> Eclosure;
+        std::istringstream(opnamesplit[2]) >> r12;
+        theop = M0nu::GamowTeller_R(modelspace, Eclosure, r12);
+      }
+      else if (opnamesplit[0] == "DGTR") //Radial depedance of DGT operator
+      {
+        double r12;
+        std::istringstream(opnamesplit[1]) >> r12;
+        theop = M0nu::DGT_R(modelspace, r12);
+      }
+      else if (opnamesplit[0] == "DGTRLocal") //Radial depedance of DGT operator with surface localization
+      {
+        double r12;
+        std::istringstream(opnamesplit[1]) >> r12;
+        theop = M0nu::DGT_R_SurfaceLocalization(modelspace, r12);
       }
       else //need to remove from the list
       {
@@ -1514,9 +1676,9 @@ Operator E0Op(ModelSpace& modelspace)
 
 
 
-//Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R)
+// Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R)
 // providing an index list allows us to select e.g. just protons or just neutrons
-//Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::vector<index_t> index_list)
+// Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::vector<index_t> index_list)
 Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::set<index_t> index_list)
 {
   Operator a_nu(modelspace,0,0,0,2);
@@ -1699,6 +1861,31 @@ Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::set<i
    return T2;
  }
 
+  /// Ananople moment operator -- added by A. B.
+  Operator AnapoleMoment(ModelSpace& modelspace)
+  {
+    Operator As(modelspace, 1, 0, 1, 2);
+    double bL = pow(HBARC * HBARC / M_NUCLEON / modelspace.GetHbarOmega(), 0.5 * 1); // b^L where b=sqrt(hbar/mw)
+    int norbits = modelspace.GetNumberOrbits();
+    for (int i=0; i<norbits; ++i)
+    {
+      Orbit & oi = modelspace.GetOrbit(i);
+      double ji = 0.5 * oi.j2;
+      double magnetic_moment = oi.tz2 < 0 ? PROTON_SPIN_G/2 : NEUTRON_SPIN_G/2; // These are 5.586 and -3.826 for proton and neutron, respectively. Defined in PhysicalConstants.hh
+      for (int j: As.OneBodyChannels.at({oi.l, oi.j2, oi.tz2}))
+      {
+        Orbit& oj = modelspace.GetOrbit(j);
+        if (oi.tz2 != oj.tz2) continue;
+        double jj = 0.5 * oj.j2; 
+        double r2int = RadialIntegral(oi.n, oi.l, oj.n, oj.l, 1) * bL ;
+        double nineJ = AngMom::NineJ(oi.l, 0.5, ji, oj.l, 0.5, jj, 1, 1, 1);
+        double hatfactors = sqrt((2 * ji + 1) * (2 * jj + 1) * (2 * oi.l + 1) * (2 * oi.l + 1));
+        As.OneBody(i, j) = 3 * sqrt(2) * magnetic_moment * r2int * hatfactors * nineJ * AngMom::ThreeJ(oj.l, 1, oi.l, 0, 0, 0);
+        As.OneBody(j, i) = -1 * modelspace.phase((oi.j2 - oj.j2) / 2) * As.OneBody(i, j);
+      }
+    }
+    return As;
+  }
 
   /// Mutipole responses (except dipole) with units fm\f$ ^{rL}\f$ (see PRC97(2018)054306 ) --added by bhu
   Operator MultipoleResponseOp(ModelSpace& modelspace, int rL, int YL, int isospin)

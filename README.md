@@ -10,8 +10,9 @@ The IMSRG code in the src directory is copyrighted under the GNU Public License 
 This code also uses the Armadillo library, which is covered under the Mozilla Public License (https://www.mozilla.org/en-US/MPL/2.0/), and the BOOST library, which is covered under the BOOST Software License (http://www.boost.org/users/license.html)
 
 
-Credits:
-	* Most of this code was written by Ragnar Stroberg, who benefitted greatly from the codes of Koshiroh Tsukiyama, Heiko Hergert, and Nathan Parzuchowski.
-	* A substantial amount of additional machinery was added by Takayuki Miyagi, including the HFMBPT and ThreeBodyMENO2B classes.
-	* Implementation of operators for neutrinoless double beta decay was done by Charlie Payne, and these were ported back to the main fork by Antoine Belley.
-	* Some tweaks to the 3rd order MBPT code were contributed by Johannes Simonis.
+## Credits:
+* Most of this code was written by Ragnar Stroberg, who benefitted greatly from the codes of Koshiroh Tsukiyama, Heiko Hergert, and Nathan Parzuchowski.
+* A substantial amount of additional machinery was added by Takayuki Miyagi, including the HFMBPT, ThreeBodyMENO2B, and Pwd classes.
+* Implementation of operators for neutrinoless double beta decay was done by Charlie Payne, and these were ported back to the main fork by Antoine Belley.
+*  Some tweaks to the 3rd order MBPT code were contributed by Johannes Simonis.
+* Implementation of the IMSRG(3f2) routines, and tensor IMSRG(3) commutators by Bingcheng He.

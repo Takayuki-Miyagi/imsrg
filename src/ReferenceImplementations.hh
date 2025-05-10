@@ -54,21 +54,28 @@ namespace ReferenceImplementations
   void comm333_pph_hhpss(const Operator &X, const Operator &Y, Operator &Z);
 
   // scalar-tensor commutators
+  void comm111st(const Operator &X, const Operator &Y, Operator &Z);
+  void comm121st(const Operator &X, const Operator &Y, Operator &Z);
+  void comm122st(const Operator &X, const Operator &Y, Operator &Z);
+  void comm221st(const Operator &X, const Operator &Y, Operator &Z);
+  void comm222_pp_hhst(const Operator &X, const Operator &Y, Operator &Z);
   void comm222_phst(const Operator &X, const Operator &Y, Operator &Z);
 
+
   // scalar-tensor with a 3b operator
-  void comm331st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm223st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm231st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm232st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm133st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm132st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test
-  void comm332_pphhst(const Operator &X, const Operator &Y, Operator &Z);       // PASS the unit test
-  void comm332_ppph_hhhpst(const Operator &X, const Operator &Y, Operator &Z);  // PASS the unit test
-  void comm233_pp_hhst(const Operator &X, const Operator &Y, Operator &Z);      // PASS the unit test
-  void comm233_phst(const Operator &X, const Operator &Y, Operator &Z);         // PASS the unit test
-  void comm333_ppp_hhhst(const Operator &X, const Operator &Y, Operator &Z);    // PASS the unit test
-  void comm333_pph_hhpst(const Operator &X, const Operator &Y, Operator &Z);    // PASS the unit test
+  void comm331st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  void comm223st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  void comm231st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  void comm232st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  void comm133st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  void comm132st(const Operator &X, const Operator &Y, Operator &Z);            // PASS the unit test (J and T)
+  
+  void comm332_ppph_hhhpst(const Operator &X, const Operator &Y, Operator &Z);  // PASS the unit test (J and T)
+  void comm332_pphhst(const Operator &X, const Operator &Y, Operator &Z);       // PASS the unit test (J and T)
+  void comm233_pp_hhst(const Operator &X, const Operator &Y, Operator &Z);      // PASS the unit test (J and T)
+  void comm233_phst(const Operator &X, const Operator &Y, Operator &Z);         // PASS the unit test (J and T)
+  void comm333_ppp_hhhst(const Operator &X, const Operator &Y, Operator &Z);    // PASS the unit test (J and T)
+  void comm333_pph_hhpst(const Operator &X, const Operator &Y, Operator &Z);    // PASS the unit test (J and T)
 
 
   /// Two-nested-commutator expressions Z = [X,[X,Y]_3]  where X and Y are 2-body.
@@ -92,9 +99,6 @@ namespace ReferenceImplementations
   // The commutators for [Omega, [Omega, Gamma]]
   void comm223_231_BruteForce(const Operator &Eta, const Operator &Gamma, Operator &Z);
   void comm223_232_BruteForce(const Operator &Eta, const Operator &Gamma, Operator &Z);
-
-
-  void comm223_231_BruteForce_Test(const Operator &Eta, const Operator &Gamma, Operator &Z);
 
   void comm223_231(const Operator &Eta, const Operator &Gamma, Operator &Z);
   void comm223_232(const Operator &Eta, const Operator &Gamma, Operator &Z);

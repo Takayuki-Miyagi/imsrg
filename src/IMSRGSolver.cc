@@ -1,4 +1,3 @@
-
 #include "IMSRGSolver.hh"
 #include "Commutator.hh"
 #include "BCH.hh"

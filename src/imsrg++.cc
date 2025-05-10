@@ -1483,7 +1483,7 @@ int main(int argc, char** argv)
 
 
 
-
+      
       if ( basis == "oscillator" or opname=="OccRef")
       {
         op = op.DoNormalOrdering();
@@ -1496,6 +1496,8 @@ int main(int argc, char** argv)
       {
         op = hf.TransformHOToNATBasis(op).DoNormalOrdering();
       }
+
+      
       std::cout << "   HF: " << op.ZeroBody << std::endl;
 
       if ( (eMax_imsrg != -1) or (e2Max_imsrg != -1) or (e3Max_imsrg) != -1)

@@ -20,17 +20,21 @@
 #ifndef AngMom_hh
 #define AngMom_hh 1
 
-#include <cmath>
+//#include <cmath>
 #include <vector>
 
-#define MOSH_BETA_1 M_PI_4   // Moshinksy beta parameter for mass ratio 1:1
-#define MOSH_BETA_2 atan(sqrt(2)) // Moshinsky beta parameter for  mass ratio m1/m2 = 2
-#define MOSH_BETA_half atan(sqrt(0.5)) // Moshinsky beta parameter for mass ration m1/m2 = 0.5
+//#define MOSH_BETA_1 M_PI_4   // Moshinksy beta parameter for mass ratio 1:1
+//#define MOSH_BETA_2 atan(sqrt(2)) // Moshinsky beta parameter for  mass ratio m1/m2 = 2
+//#define MOSH_BETA_half atan(sqrt(0.5)) // Moshinsky beta parameter for mass ration m1/m2 = 0.5
 
 
 //class AngMom
 namespace AngMom
 {
+
+   extern double mosh_beta_1;
+   extern double mosh_beta_2;
+   extern double mosh_beta_half;
 
    static std::vector<double> FactorialList;
    static std::vector<double> DoubleFactorialList;
@@ -48,7 +52,9 @@ namespace AngMom
    double NormNineJ(double j1, double j2, double j3, double j4, double j5, double j6, double j7, double j8, double j9);
    double TwelveJ_1_ints(int a1, int a2, int a3, int a4, int b12, int b23, int b34, int b41, int c1, int c2, int c3, int c4);
    double TwelveJ_1(double a1, double a2, double a3, double a4, double b12, double b23, double b34, double b41, double c1, double c2, double c3, double c4);
-   double Moshinsky(int N, int L, int n, int l, int n1, int l1, int n2, int l2, int lam, double B=MOSH_BETA_1);
+   double Moshinsky(int N, int L, int n, int l, int n1, int l1, int n2, int l2, int lam, double B=AngMom::mosh_beta_1);
+//   double Moshinsky(int N, int L, int n, int l, int n1, int l1, int n2, int l2, int lam, double B=3.1415926/2.0);
+//   double Moshinsky(int N, int L, int n, int l, int n1, int l1, int n2, int l2, int lam, double B=MOSH_BETA_1);
    double TalmiB(int n, int l, int nn, int ll, int p);
 //   double Tcoeff( LabKet& labket, int Jab, int twoJ, jacobi1_state& jac1, jacobi2_state& jac2, int twoJ12, int Ncm, int Lcm);
    double Tcoeff( int na, int la, int j2a, int nb, int lb, int j2b, int nc, int lc, int j2c, int Jab, int twoJ, int N1, int L1, int S1, int J1, int N2, int L2, int twoJ2, int twoJ12, int Ncm, int Lcm);

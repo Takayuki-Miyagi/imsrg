@@ -12,6 +12,8 @@ namespace BCH
   bool use_factorized_correction_BCH_Product = false; 
   bool use_factorized_correct_ZBterm = false;                // correct zero body term at the end of IMSRG2
   bool only_2b_omega = false;
+  bool TurnOn_comm223_231 = true;
+  bool TurnOn_comm223_232 = true;
 
   double bch_transform_threshold = 1e-9;
   double bch_product_threshold = 1e-4;
@@ -45,6 +47,16 @@ namespace BCH
   void SetUseFactorizedCorrectionBCH_product(bool tf)
   {
     use_factorized_correction_BCH_Product = tf;
+  }
+
+  void SetComm223_231(bool tf)
+  {
+    TurnOn_comm223_231 = tf;
+  }
+
+  void SetComm223_232(bool tf)
+  {
+    TurnOn_comm223_232 = tf;
   }
 
   void SetUseFactorized_Correct_ZBTerm(bool tf)
@@ -166,8 +178,10 @@ namespace BCH
             Operator Op_DoubleNested = OpNested;
             Op_DoubleNested.Erase();
 
-            Commutator::FactorizedDoubleCommutator::comm223_231(Omega, chi2, Op_DoubleNested);
-            Commutator::FactorizedDoubleCommutator::comm223_232(Omega, chi2, Op_DoubleNested);
+            if ( TurnOn_comm223_231 )
+              Commutator::FactorizedDoubleCommutator::comm223_231(Omega, chi2, Op_DoubleNested);
+            if ( TurnOn_comm223_232 )
+              Commutator::FactorizedDoubleCommutator::comm223_232(Omega, chi2, Op_DoubleNested);
             OpNested += Op_DoubleNested;
         }
 

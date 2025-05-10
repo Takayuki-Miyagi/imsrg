@@ -47,7 +47,8 @@ namespace imsrg_util
  Operator PSquaredOp(ModelSpace& modelspace);
  Operator RSquaredOp(ModelSpace& modelspace);
  Operator E0Op(ModelSpace& modelspace);
- Operator MultipoleResponseOp(ModelSpace& modelspace, int rL, int YL, int isospin);
+ Operator AnapoleMoment(ModelSpace &modelspace);
+ Operator MultipoleResponseOp(ModelSpace &modelspace, int rL, int YL, int isospin);
  Operator IVDipoleOp(ModelSpace& modelspace, int rL, int YL);
  Operator ISDipoleOp(ModelSpace& modelspace, int rL, int YL, double Rms);
  Operator SchiffOp(ModelSpace& modelspace, int rL, int YL, double Rms);

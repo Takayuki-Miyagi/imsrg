@@ -81,6 +81,7 @@ class TwoBodyME
   void SetHermitian();
   void SetAntiHermitian();
   void SetNonHermitian();
+  bool IsAllocated()const;
 
   arma::mat& GetMatrix(size_t chbra, size_t chket){return MatEl.at({chbra,chket});};
   arma::mat& GetMatrix(size_t ch){return GetMatrix(ch,ch);};
@@ -163,7 +164,8 @@ class TwoBodyME
   void AntiSymmetrize();
   void Eye();
   void PrintAllMatrices() const;
-  void PrintMatrix(size_t chbra,size_t chket) const { MatEl.at({chbra,chket}).print();};
+  void PrintMatrix(size_t chbra,size_t chket) const;
+//  void PrintMatrix(size_t chbra,size_t chket) const {std::cout.precision(12); MatEl.at({chbra,chket}).raw_print();};
   int Dimension();
   int size();
 

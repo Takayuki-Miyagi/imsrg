@@ -25,7 +25,7 @@ Generator::Generator()
 
 void Generator::SetDenominatorPartitioning(std::string dp)
 {
-   if (dp=="Moller_Plesset") denominator_partitioning=Moller_Plesset;
+   if (dp=="Moller_Plesset" or dp=="Moller-Plesset" or dp=="MollerPlesset" or dp=="MP") denominator_partitioning=Moller_Plesset;
    else if ( dp=="MP_isospin") denominator_partitioning=MP_isospin;
    else denominator_partitioning=Epstein_Nesbet;
 }
@@ -132,6 +132,17 @@ double Generator::Get1bDenominator(int i, int j)
    if (denominator_delta_index==-12345 or i == denominator_delta_index or j==denominator_delta_index)
      denominator += denominator_delta;
 
+   // if (std::abs(denominator) < denominator_cutoff)
+   // {
+   //    if (denominator > 0)
+   //    {
+   //       denominator = denominator_cutoff;
+   //    }
+   //    else
+   //    {
+   //       denominator = - denominator_cutoff;
+   //    }    
+   // }
    if (std::abs(denominator)<denominator_cutoff)
      denominator = denominator_cutoff;
 
@@ -182,6 +193,17 @@ double Generator::Get2bDenominator(int ch_bra, int ch_ket, int ibra, int iket)
      denominator       += ( nj-nl )   * H->TwoBody.GetTBMEmonopole(j,l,j,l); // p'h'p'h'
    }
 
+   // if (std::abs(denominator) < denominator_cutoff)
+   // {
+   //   if (denominator > 0)
+   //   {
+   //       denominator = denominator_cutoff;
+   //   }
+   //   else
+   //   {
+   //       denominator = -denominator_cutoff;
+   //   }
+   // }
    if (std::abs(denominator)<denominator_cutoff)
      denominator = denominator_cutoff;
 
@@ -242,50 +264,34 @@ void Generator::ConstructGenerator_SingleRef(std::function<double (double,double
       for ( auto& i : VectorUnion(H->modelspace->valence, H->modelspace->qspace) )
       {
          double denominator = Get1bDenominator(i,a);
-//         Eta->OneBody(i,a) = 0.5*atan(2*H->OneBody(i,a)/denominator);
          Eta->OneBody(i,a) = etafunc( H->OneBody(i,a), denominator);
          Eta->OneBody(a,i) = - Eta->OneBody(i,a);
       }
    }
 
    // Two body piece -- eliminate pp'hh' bits
-//   for (int ch=0;ch<Eta->nChannels;++ch)
-//   {
    for ( auto& iter : Eta->TwoBody.MatEl )
    {
       size_t ch_bra = iter.first[0];
       size_t ch_ket = iter.first[1];
-//      TwoBodyChannel& tbc = modelspace->GetTwoBodyChannel(ch);
       TwoBodyChannel& tbc_bra = H->modelspace->GetTwoBodyChannel(ch_bra);
       TwoBodyChannel& tbc_ket = H->modelspace->GetTwoBodyChannel(ch_ket);
-//      arma::mat& ETA2 =  Eta->TwoBody.GetMatrix(ch);
       arma::mat& ETA2 =  iter.second;
-//      arma::mat& H2 = H->TwoBody.GetMatrix(ch);
       arma::mat& H2 = H->TwoBody.GetMatrix(ch_bra,ch_ket);
-//      for ( auto& iket : tbc.GetKetIndex_cc() ) // cc means core-core ('holes' refer to the reference state)
       for ( auto& iket : tbc_ket.GetKetIndex_cc() ) // cc means core-core ('holes' refer to the reference state)
       {
-//         for ( auto& ibra : VectorUnion(tbc.GetKetIndex_qq(), tbc.GetKetIndex_vv(), tbc.GetKetIndex_qv() ) )
          for ( auto& ibra : VectorUnion(tbc_bra.GetKetIndex_qq(), tbc_bra.GetKetIndex_vv(), tbc_bra.GetKetIndex_qv() ) )
          {
-//            double denominator = Get2bDenominator(ch,ibra,iket);
             double denominator = Get2bDenominator(ch_bra,ch_ket,ibra,iket);
-//            double denominator = Get2bDenominator_Jdep(ch_bra,ibra,iket);
-//            ETA2(ibra,iket) = 0.5*atan(2*H2(ibra,iket) / denominator);
             ETA2(ibra,iket) = etafunc( H2(ibra,iket), denominator);
             ETA2(iket,ibra) = - ETA2(ibra,iket) ; // Eta needs to be antisymmetric
-            Ket& bra = tbc_bra.GetKet(ibra);
-            Ket& ket = tbc_ket.GetKet(iket);
-//            std::cout << __func__ << "  line " << __LINE__ << " bra,ket " << bra.p << " " << bra.q << " , " << ket.p << " " << ket.q  << "  J = " << tbc_bra.J << "   numerator /denom = " << H2(ibra,iket) << " / " << denominator << std::endl;
          }
       }
     }
 
-//    std::cout << "Eta and H particle ranks: " << Eta->GetParticleRank() << "  " << H->GetParticleRank() << std::endl;
     if ( Eta->GetParticleRank()>2 and H->GetParticleRank()>2 and not only_2b_eta )
     {
        double t_start = omp_get_wtime();
-//       ConstructGenerator_Atan_3body();
        ConstructGenerator_SingleRef_3body( etafunc );
        H->profiler.timer["Update Eta 3body"] += omp_get_wtime() - t_start;
     }// if particle rank >3

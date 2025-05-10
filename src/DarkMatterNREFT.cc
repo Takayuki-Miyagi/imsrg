@@ -424,11 +424,12 @@ namespace DM_NREFT
         int j2b = ob.j2;
         if (la==0) continue;
         if (lb==0) continue;
-
+        std::cout << na << " " << la << " " << j2a << " " << oa.tz2 << std::endl;
+        std::cout << nb << " " << lb << " " << j2b << " " << ob.tz2 << std::endl;
         double mab = 1.0 / sqrt(4.0*M_PI) * pow( -1, (2*L+j2b+1.0)*0.5 )
                      * sqrt( (2*la+1) * (j2a+1) * (j2b+1) * (2*L+1) * (2*J+1) )
                      * gsl_sf_coupling_6j( 2*la, j2a, 1, j2b, 2*lb, 2*J)
-                     * (- sqrt( lb+1.0) * sqrt( 2*(lb+1)+1 )
+                     * (- sqrt( lb+1.0) * sqrt( 2*(lb+1.0)+1.0 )
                          * gsl_sf_coupling_6j(2*L,2,2*J,2*lb,2*la,2*(lb+1))
                          * gsl_sf_coupling_3j(2*la,2*L,2*(lb+1),0,0,0)
                          * jdmho(na,la,nb,lb,L,y)
@@ -437,15 +438,16 @@ namespace DM_NREFT
                          * gsl_sf_coupling_3j(2*la,2*L,2*(lb-1),0,0,0)
                          * jdpho(na,la,nb,lb,L,y)
                         );
-	// This formula assumes we're storing things as reduced matrix elements. If J=0, then we aren't, so we get a factor sqrt(2j+1)
-	if (J==0 and parity==0)
-	{
-	   mab /= sqrt( j2a+1.0);
+        std::cout<<mab<<std::endl;
+        // This formula assumes we're storing things as reduced matrix elements. If J=0, then we aren't, so we get a factor sqrt(2j+1)
+        if (J==0 and parity==0)
+        {
+          mab /= sqrt( j2a+1.0);
         }
         Mg_op.OneBody(a,b) = mab * isofactor[(oa.tz2+1)/2];
       }
     }
-
+    Mg_op.PrintOneBody();
     return Mg_op;
   }
 
@@ -461,6 +463,7 @@ namespace DM_NREFT
   {
     Operator Sigma_op = Ms( modelspace, IsoSV, J, J, q);
     Sigma_op.SetAntiHermitian();
+    Sigma_op.PrintOneBody();
     return Sigma_op;
   }
 
@@ -478,6 +481,9 @@ namespace DM_NREFT
   Operator Sigmap( ModelSpace& modelspace, std::string IsoSV, int J, double q )
   {
     Operator Sigmap_op = -sqrt(J/(2*J+1.)) * Ms( modelspace, IsoSV, J, J+1, q);
+    Sigmap_op.PrintOneBody();
+    Operator Sigmap_op2 = sqrt( (J+1.)/(2*J+1.) ) * Ms(modelspace, IsoSV, J, J-1, q);
+    Sigmap_op2.PrintOneBody();
     if ( J > 0 )  Sigmap_op += sqrt( (J+1.)/(2*J+1.) ) * Ms(modelspace, IsoSV, J, J-1, q);
     return Sigmap_op;
   }
@@ -515,7 +521,10 @@ namespace DM_NREFT
 
   Operator Delta( ModelSpace& modelspace, std::string IsoSV, int J, double q )
   {
-    return Mg(modelspace, IsoSV, J, J, q);
+    Operator Delta_op = Mg(modelspace, IsoSV, J, J, q);
+    Delta_op.SetAntiHermitian();
+    Delta_op.PrintOneBody();
+    return Delta_op;
   }
 
 
@@ -534,6 +543,7 @@ namespace DM_NREFT
     Operator Deltap_op = -sqrt(J/(2*J+1.)) * Mg(modelspace, IsoSV, J, J+1, q);
     if ( J > 0 )  Deltap_op += sqrt( (J+1.)/(2*J+1.) ) * Mg(modelspace, IsoSV, J, J-1, q);
     Deltap_op.SetAntiHermitian();
+    Deltap_op.PrintOneBody();
     return Deltap_op;
   }
 

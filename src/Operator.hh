@@ -139,7 +139,7 @@ class Operator
   bool IsHermitian()const {return hermitian;};
   bool IsAntiHermitian()const {return antihermitian;};
   bool IsNonHermitian()const {return not (hermitian or antihermitian);};
-  int GetParticleRank()const {return particle_rank;};
+  int GetParticleRank()const ;
   int GetJRank()const {return rank_J;};
   int GetTRank()const {return rank_T;};
   int GetParity()const {return parity;};

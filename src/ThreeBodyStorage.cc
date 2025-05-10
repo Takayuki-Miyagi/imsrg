@@ -293,7 +293,7 @@ std::vector<ThreeBodyStorage::ME_type> ThreeBodyStorage::GetME_pn_TwoOps(int Jab
   std::vector<size_t> iket;
   size_t ch_bra = GetKetIndex_withRecoupling( Jab, twoJ, a,b,c, ibra, recouple_bra );
   size_t ch_ket = GetKetIndex_withRecoupling( Jde, twoJ, d,e,f, iket, recouple_ket );
-  if ( ch_bra != ch_ket) return me_out;
+  // if ( ch_bra != ch_ket) return me_out;  // remove this and let it also works for tensor  B.C.
   //TODO: Should we also throw an exception if twoJ is even?
 
   for ( size_t i=0; i<ibra.size(); i++)

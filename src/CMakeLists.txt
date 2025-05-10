@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.18)
+set(INSTDIR $ENV{HOME})
+set(BLA_VENDOR OpenBLAS)
+# set(CMAKE_SKIP_INSTALL_RPATH ON)
+# set(CMAKE_SYSTEM_PREFIX_PATH $ENV{EBROOTGENTOO})
+set(CMAKE_CURRENT_BINARY_DIR "../build")
 
 option(IMSRG_BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
+
+# Place to put any settings for quirks of your specific environment
+# e.g. maybe you want a different BLAS, or maybe you need to
+# explicitly set some additional variables for whatever reason
+include(local_settings.cmake OPTIONAL)
 
 # Determine if imsrg++ is built as a subproject (using add_subdirectory)
 # or if it is the main project.
@@ -26,9 +36,12 @@ find_package(BLAS REQUIRED)
 find_package(GSL REQUIRED)
 find_package(Boost REQUIRED)
 find_package(ZLIB REQUIRED)
+# find_package(Armadillo REQUIRED)
+# include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 
-set(CMAKE_CXX_STANDARD 11)
+add_compile_options(-frounding-math)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(IMSRGPLUSPLUS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -39,16 +52,16 @@ if(IMSRG_BUILD_PYTHON_BINDINGS)
     set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif()
 
-add_subdirectory(armadillo)
-add_subdirectory(half)
+add_subdirectory(extern/armadillo)
+add_subdirectory(extern/half)
 
-add_subdirectory(boost_src)
+add_subdirectory(extern/boost_src)
 
-add_subdirectory(profiling)
+# add_subdirectory(profiling)
 
 
 if(IMSRG_BUILD_PYTHON_BINDINGS)
-    add_subdirectory(pybind11)
+    add_subdirectory(extern/pybind11)
 endif()
 
 # Add a custom command that produces version.cpp, plus
@@ -59,6 +72,7 @@ ADD_CUSTOM_COMMAND(
            ${CMAKE_CURRENT_BINARY_DIR}/_version.cc
     COMMAND ${CMAKE_COMMAND} -P
             ${CMAKE_CURRENT_SOURCE_DIR}/git_version.cmake)
+
 
 add_library(
     AngMom
@@ -134,6 +148,7 @@ target_link_libraries(
     armadillo
     ModelSpace
     PRIVATE
+    # ${ARMADILLO_LIBRARIES}
     PhysicalConstants
 )
 
@@ -244,6 +259,7 @@ target_link_libraries(
     PRIVATE
     GSL::gsl
     OpenMP::OpenMP_CXX
+    # ${ARMADILLO_LIBRARIES}
     PhysicalConstants
     AngMom
 )
@@ -284,6 +300,19 @@ target_link_libraries(
 )
 
 add_library(
+    BCH
+    BCH.hh BCH.cc
+)
+target_link_libraries(
+    BCH
+    PUBLIC
+    Operator
+    PRIVATE
+    Commutator
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
     IMSRGSolver
     IMSRGSolver.hh IMSRGSolver.cc
 )
@@ -295,8 +324,22 @@ target_link_libraries(
     IMSRGProfiler
     ReadWrite
     PRIVATE
+    BCH
     Commutator
     Boost::boost
+)
+
+add_library(
+    IMSRGSolverPV
+    IMSRGSolverPV.hh IMSRGSolverPV.cc
+)
+target_link_libraries(
+    IMSRGSolverPV
+    PUBLIC
+    IMSRGSolver
+    GeneratorPV
+    PRIVATE
+    Commutator
 )
 
 add_library(
@@ -305,6 +348,58 @@ add_library(
 )
 target_link_libraries(
     Commutator232
+    PUBLIC
+    Operator
+    ModelSpace
+    PRIVATE
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
+    TensorCommutators
+    TensorCommutators.hh TensorCommutators.cc
+)
+target_link_libraries(
+    TensorCommutators
+    PUBLIC
+    Operator
+    ModelSpace
+    PRIVATE
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
+    IMSRG3Commutators
+    IMSRG3Commutators.hh IMSRG3Commutators.cc
+)
+target_link_libraries(
+    IMSRG3Commutators
+    PUBLIC
+    Operator
+    ModelSpace
+    PRIVATE
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
+    FactorizedDoubleCommutator
+    FactorizedDoubleCommutator.hh FactorizedDoubleCommutator.cc
+)
+target_link_libraries(
+    FactorizedDoubleCommutator
+    PUBLIC
+    Operator
+    ModelSpace
+    PRIVATE
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
+    DaggerCommutators
+    DaggerCommutators.hh DaggerCommutators.cc
+)
+target_link_libraries(
+    DaggerCommutators
     PUBLIC
     Operator
     ModelSpace
@@ -325,8 +420,13 @@ target_link_libraries(
     ThreeLegME
     PRIVATE
     OpenMP::OpenMP_CXX
+    # ${ARMADILLO_LIBRARIES}
     PhysicalConstants
     Commutator232
+    TensorCommutators
+    IMSRG3Commutators
+    FactorizedDoubleCommutator
+    DaggerCommutators
     AngMom
 )
 
@@ -386,6 +486,34 @@ add_library(
     INTERFACE
 )
 
+# add_library(
+#     Helicity
+#     Helicity.hh Helicity.cc
+# )
+
+# target_link_libraries(
+#     Helicity
+#     PUBLIC
+#     GSL::gsl
+#     PhysicalConstants
+#     PRIVATE
+#     AngMom
+
+# )
+
+add_library(
+    Pwd
+    Pwd.hh Pwd.cc
+)
+
+target_link_libraries(
+    Pwd
+    PUBLIC
+    GSL::gsl
+    PhysicalConstants
+
+)
+
 add_library(
     M0nu
     M0nu.hh M0nu.cc
@@ -397,8 +525,9 @@ target_link_libraries(
     GSL::gsl
     ModelSpace
     Operator
-    imsrg_util
+#    imsrg_util
     PhysicalConstants
+    Pwd
     PRIVATE
     AngMom
 )
@@ -443,6 +572,25 @@ target_link_libraries(
 )
 
 add_library(
+    GeneratorPV
+    GeneratorPV.hh GeneratorPV.cc
+)
+target_link_libraries(
+    GeneratorPV
+    PUBLIC
+    ModelSpace
+    Operator
+    PRIVATE
+    Generator
+    GSL::gsl
+    imsrg_util
+    AngMom
+    Commutator
+    PhysicalConstants
+    OpenMP::OpenMP_CXX
+)
+
+add_library(
     HFMBPT
     HFMBPT.hh HFMBPT.cc
 )
@@ -473,6 +621,7 @@ target_link_libraries(
 
 add_library(
     ReferenceImplementations
+    OBJECT
     ReferenceImplementations.hh ReferenceImplementations.cc
 )
 target_link_libraries(
@@ -512,11 +661,8 @@ target_link_libraries(
 
 add_library(
     IMSRG
-    INTERFACE
-)
-target_link_libraries(
-    IMSRG
-    INTERFACE
+    SHARED
+#    INTERFACE
     ReadWrite
     ModelSpace
     TwoBodyME
@@ -525,7 +671,9 @@ target_link_libraries(
     HartreeFock
     Commutator
     IMSRGSolver
+    IMSRGSolverPV
     Generator
+    GeneratorPV
     imsrg_util
     AngMom
     IMSRGProfiler
@@ -536,6 +684,32 @@ target_link_libraries(
     PhysicalConstants
     RPA
 )
+target_link_libraries(
+    IMSRG
+#    INTERFACE
+    ReadWrite
+    ModelSpace
+    TwoBodyME
+    ThreeBodyME
+    Operator
+    HartreeFock
+    Commutator
+    IMSRGSolver
+    IMSRGSolverPV
+    Generator
+    GeneratorPV
+    imsrg_util
+    AngMom
+    IMSRGProfiler
+    Jacobi3BME
+    DarkMatterNREFT
+    HFMBPT
+    UnitTest
+    PhysicalConstants
+    RPA
+)
+set_target_properties(IMSRG PROPERTIES SUFFIX ".so")
+
 
 add_executable(
     imsrg++
@@ -551,19 +725,16 @@ target_link_libraries(
     OpenMP::OpenMP_CXX
 )
 
-add_executable(
-    unit_test
-    unit_test.cc
-)
-target_link_libraries(
-    unit_test
-    PUBLIC
-    IMSRG
-    Parameters
-    PhysicalConstants
-    Version
-    OpenMP::OpenMP_CXX
-)
+
+#target_link_libraries(
+#    UnitTest
+#    PUBLIC
+#    IMSRG
+#    Parameters
+#    PhysicalConstants
+#    Version
+#    OpenMP::OpenMP_CXX
+#)
 
 if(IMSRG_BUILD_PYTHON_BINDINGS)
     pybind11_add_module(pyIMSRG pyIMSRG.cc)
@@ -572,4 +743,31 @@ if(IMSRG_BUILD_PYTHON_BINDINGS)
         PRIVATE
         IMSRG
     )
+    set_target_properties(pyIMSRG PROPERTIES SUFFIX ".so")
 endif()
+
+# Install imsrg executable
+install(TARGETS imsrg++ 
+        DESTINATION ${INSTDIR}/bin 
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+
+# Install library
+install(TARGETS IMSRG  
+        DESTINATION ${INSTDIR}/lib 
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+# Install the header files
+file(GLOB HEADERS *.hh)
+install(FILES ${HEADERS} 
+        DESTINATION ${INSTDIR}/include
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+include(CTest)
+list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
+# Unit Tests
+add_test(NAME Commutators2 COMMAND  python3 ../test/UnitTestCommutators2.py )
+add_test(NAME Commutators3 COMMAND  python3 ../test/UnitTestCommutators3.py )
+add_test(NAME Factorized   COMMAND  python3 ../test/UnitTestFactorized.py )
+add_test(NAME Triples      COMMAND  python3 ../test/UnitTestTriples.py )
+add_test(NAME Tensor       COMMAND  python3 ../test/UnitTestTensor.py )
+add_test(NAME NormalOrdering    COMMAND  python3 ../test/UnitTestNormalOrdering.py )

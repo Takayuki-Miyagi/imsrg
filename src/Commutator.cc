@@ -690,6 +690,7 @@ namespace Commutator
     {
       TwoBodyChannel &tbc = Z.modelspace->GetTwoBodyChannel(ch);
       auto hh = tbc.GetKetIndex_hh();
+      if (hh.size() == 0) continue;
       auto ph = tbc.GetKetIndex_ph();
       auto pp = tbc.GetKetIndex_pp();
       arma::uvec nbar_indices = arma::join_cols(hh, ph);
@@ -923,7 +924,7 @@ namespace Commutator
     int hZ = Z.IsHermitian() ? 1 : -1;
 
     int n_nonzero = Z.modelspace->SortedTwoBodyChannels.size();
-#pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int ich = 0; ich < n_nonzero; ++ich)
     {
       int ch = Z.modelspace->SortedTwoBodyChannels[ich];
@@ -1026,7 +1027,7 @@ namespace Commutator
     }
     int nch = ch_bra_list.size();
 
-#pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int ich = 0; ich < nch; ich++)
     {
       size_t ch_bra = ch_bra_list[ich];
@@ -1186,9 +1187,9 @@ namespace Commutator
       ch_ket_list.push_back(ch_ket);
     }
     int nch = ch_bra_list.size();
-#ifndef OPENBLAS_NOUSEOMP
-#pragma omp parallel for schedule(dynamic, 1)
-#endif
+    #ifndef OPENBLAS_NOUSEOMP
+    #pragma omp parallel for schedule(dynamic, 1)
+    #endif
     for (int ich = 0; ich < nch; ++ich)
     {
       int ch_bra = ch_bra_list[ich];
@@ -1323,7 +1324,7 @@ namespace Commutator
     int norbits = Z.modelspace->all_orbits.size();
     // The one body part
     std::vector<index_t> allorb_vec(Z.modelspace->all_orbits.begin(), Z.modelspace->all_orbits.end());
-#pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 1)
     //   for (int i=0;i<norbits;++i)
     for (int indexi = 0; indexi < norbits; ++indexi)
     {
@@ -1395,16 +1396,25 @@ namespace Commutator
   void DoPandyaTransformation_SingleChannel(const Operator &Z, arma::mat &TwoBody_CC_ph, int ch_cc, std::string orientation = "normal")
   {
     int herm = Z.IsHermitian() ? 1 : -1;
-    TwoBodyChannel_CC &tbc_cc = Z.modelspace->GetTwoBodyChannel_CC(ch_cc);
-    int nKets_cc = tbc_cc.GetNumberKets();
-    arma::uvec kets_ph = arma::join_cols(tbc_cc.GetKetIndex_hh(), tbc_cc.GetKetIndex_ph());
-    int nph_kets = kets_ph.n_rows;
-    int J_cc = tbc_cc.J;
-
+    TwoBodyChannel_CC &tbc_cc_ket = Z.modelspace->GetTwoBodyChannel_CC(ch_cc);
+    int J_cc = tbc_cc_ket.J;
+    // If the operator Z violates parity, we need to construct the matrix for the opposite parity channel
+    int parity = (tbc_cc_ket.parity+Z.GetParity())%2;
+    int ch_cc_bra = Z.modelspace->GetTwoBodyChannelIndex(J_cc, parity, tbc_cc_ket.Tz);
+    TwoBodyChannel_CC &tbc_cc_bra = Z.modelspace->GetTwoBodyChannel_CC(ch_cc_bra);
+    int nKets_cc = tbc_cc_ket.GetNumberKets();
+    arma::uvec bras_ph = arma::join_cols(tbc_cc_bra.GetKetIndex_hh(), tbc_cc_bra.GetKetIndex_ph());
+    int nph_bras = bras_ph.n_rows;
+    if (nph_bras == 0)
+      return;
     if (orientation == "normal")
-      TwoBody_CC_ph.zeros(2 * nph_kets, nKets_cc);
+    {
+      TwoBody_CC_ph.zeros(2 * nph_bras, nKets_cc);
+    }  
     else if (orientation == "transpose")
-      TwoBody_CC_ph.zeros(nKets_cc, 2 * nph_kets);
+    {
+      TwoBody_CC_ph.zeros(nKets_cc, 2 * nph_bras);
+    }
     else
     {
       std::cout << __PRETTY_FUNCTION__ << " =>  Unknown orientation input  " << orientation << ". Don't know what to do with this." << std::endl;
@@ -1413,16 +1423,16 @@ namespace Commutator
 
     // loop over cross-coupled ph bras <ab| in this channel
     // (this is the side that gets summed over in the matrix multiplication)
-    for (int ibra = 0; ibra < nph_kets; ++ibra)
+    for (int ibra = 0; ibra < nph_bras; ++ibra)
     {
-      Ket &bra_cc = tbc_cc.GetKet(kets_ph[ibra]);
+      Ket &bra_cc = tbc_cc_bra.GetKet(bras_ph[ibra]);
       // we want to evaluate a<=b and a>=b, so to avoid code duplication, we turn this into a loop over the two orderings
       std::vector<size_t> ab_switcheroo = {bra_cc.p, bra_cc.q};
       for (int ab_case = 0; ab_case <= 1; ab_case++)
       {
         int a = ab_switcheroo[ab_case]; // this little bit gives us a,b if ab_case=0 and b,a if ab_case=1
         int b = ab_switcheroo[1 - ab_case];
-        size_t bra_shift = ab_case * nph_kets; // if we switch a<->b, we offset the bra index by nph_kets
+        size_t bra_shift = ab_case * nph_bras; // if we switch a<->b, we offset the bra index by nph_kets
 
         Orbit &oa = Z.modelspace->GetOrbit(a);
         Orbit &ob = Z.modelspace->GetOrbit(b);
@@ -1433,7 +1443,7 @@ namespace Commutator
         // loop over cross-coupled kets |cd> in this channel
         for (int iket_cc = 0; iket_cc < nKets_cc; ++iket_cc)
         {
-          Ket &ket_cc = tbc_cc.GetKet(iket_cc % nKets_cc);
+          Ket &ket_cc = tbc_cc_ket.GetKet(iket_cc % nKets_cc);
           int c = iket_cc < nKets_cc ? ket_cc.p : ket_cc.q;
           int d = iket_cc < nKets_cc ? ket_cc.q : ket_cc.p;
           Orbit &oc = Z.modelspace->GetOrbit(c);
@@ -1561,10 +1571,10 @@ namespace Commutator
   }
 
   void DoPandyaTransformation(const Operator &Z, std::deque<arma::mat> &TwoBody_CC_ph, std::string orientation = "normal")
-  {
+  { 
     // loop over cross-coupled channels
     int n_nonzero = Z.modelspace->SortedTwoBodyChannels_CC.size();
-#pragma omp parallel for schedule(dynamic, 1) if (not Z.modelspace->scalar_transform_first_pass)
+    // #pragma omp parallel for schedule(dynamic, 1) if (not Z.modelspace->scalar_transform_first_pass)
     for (int ich = 0; ich < n_nonzero; ++ich)
     {
       int ch_cc = Z.modelspace->SortedTwoBodyChannels_CC[ich];
@@ -1594,7 +1604,7 @@ namespace Commutator
     }
     size_t nch_and_ibra = ch_vec.size();
 
-#pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 1)
     for (size_t ichbra = 0; ichbra < nch_and_ibra; ichbra++)
     {
       int ch = ch_vec[ichbra];
@@ -1767,17 +1777,23 @@ namespace Commutator
     {
       if (X.GetParity() == 0 and X.GetTRank() == 0)
       {
+        Operator Xnred = X;
+        if (Xnred.IsReduced())
+          Xnred.MakeNotReduced();
         Operator Yred = Y;
         Yred.MakeReduced();
         Z.MakeReduced();
-        comm222_phst(X, Yred, Z);
+        comm222_phst(Xnred, Yred, Z);
       }
       else if (Y.GetParity() == 0 and Y.GetTRank() == 0)
       {
         Operator Xred = -X; // because [X,Y] = -[Y,X] = [Y,-X].
         Xred.MakeReduced();
+        Operator Ynred = Y;
+        if (Y.IsReduced())
+          Ynred.MakeNotReduced();
         Z.MakeReduced();
-        comm222_phst(Y, Xred, Z);
+        comm222_phst(Ynred, Xred, Z);
       }
       else if (X.GetTRank() == 0 and Y.GetTRank() == 0) // We can treat two parity-changing operators, but not two isospin-changing operators
       {
@@ -1798,106 +1814,105 @@ namespace Commutator
         std::exit(EXIT_FAILURE);
       }
       Z.MakeNotReduced();
+      // Z.PrintTwoBody();
       return;
     }
 
+      int hy = Y.IsHermitian() ? 1 : -1;
+      // Create Pandya-transformed hp and ph matrix elements
+      double t_start = omp_get_wtime();
+      double t_start_full = t_start;
 
+      // Construct the intermediate matrix Z_bar
+      size_t nch = Z.modelspace->GetNumberTwoBodyChannels_CC();
 
-    int hy = Y.IsHermitian() ? 1 : -1;
-    // Create Pandya-transformed hp and ph matrix elements
-    double t_start = omp_get_wtime();
-    double t_start_full = t_start;
-
-    // Construct the intermediate matrix Z_bar
-    size_t nch = Z.modelspace->GetNumberTwoBodyChannels_CC();
-
-    std::deque<arma::mat> Z_bar(nch);
-    for (size_t ch = 0; ch < nch; ch++)
-    {
-      size_t nKets_cc = Z.modelspace->GetTwoBodyChannel_CC(ch).GetNumberKets();
-      Z_bar[ch].zeros(nKets_cc, 2 * nKets_cc);
-    }
-
-#ifndef OPENBLAS_NOUSEOMP
-#pragma omp parallel for schedule(dynamic, 1)
-#endif
-    for (size_t ch = 0; ch < nch; ++ch)
-    {
-      const TwoBodyChannel_CC &tbc_cc = Z.modelspace->GetTwoBodyChannel_CC(ch);
-      index_t nKets_cc = tbc_cc.GetNumberKets();
-      size_t nph_kets = tbc_cc.GetKetIndex_hh().size() + tbc_cc.GetKetIndex_ph().size();
-
-      arma::mat Y_bar_ph;
-      arma::mat Xt_bar_ph;
-
-      // Y has dimension (2*nph , nKets_CC)
-      // X has dimension (nKets_CC, 2*nph )
-      // This function gives  <ij`| X |ab`> *na(1-nb)  and   <ab`| Y |ij`>,  for both orderings ab` and ba`
-      DoPandyaTransformation_SingleChannel_XandY(X, Y, Xt_bar_ph, Y_bar_ph, ch);
-
-      //      auto& Zbar_ch = Z_bar.at(ch);
-      auto &Zbar_ch = Z_bar[ch];
-
-      if (Y_bar_ph.size() < 1 or Xt_bar_ph.size() < 1)
-        continue;
-
-      // get the phases for taking the transpose of a Pandya-transformed operator
-      arma::mat PhaseMatZ(nKets_cc, nKets_cc, arma::fill::ones);
-      for (index_t iket = 0; iket < nKets_cc; iket++)
+      std::deque<arma::mat> Z_bar(nch);
+      for (size_t ch = 0; ch < nch; ch++)
       {
-        const Ket &ket = tbc_cc.GetKet(iket);
-        if (Z.modelspace->phase((ket.op->j2 + ket.oq->j2) / 2) < 0)
+        size_t nKets_cc = Z.modelspace->GetTwoBodyChannel_CC(ch).GetNumberKets();
+        Z_bar[ch].zeros(nKets_cc, 2 * nKets_cc);
+      }
+
+      #ifndef OPENBLAS_NOUSEOMP
+      #pragma omp parallel for schedule(dynamic, 1)
+      #endif
+      for (size_t ch = 0; ch < nch; ++ch)
+      {
+        const TwoBodyChannel_CC &tbc_cc = Z.modelspace->GetTwoBodyChannel_CC(ch);
+        index_t nKets_cc = tbc_cc.GetNumberKets();
+        size_t nph_kets = tbc_cc.GetKetIndex_hh().size() + tbc_cc.GetKetIndex_ph().size();
+
+        arma::mat Y_bar_ph;
+        arma::mat Xt_bar_ph;
+
+        // Y has dimension (2*nph , nKets_CC)
+        // X has dimension (nKets_CC, 2*nph )
+        // This function gives  <ij`| X |ab`> *na(1-nb)  and   <ab`| Y |ij`>,  for both orderings ab` and ba`
+        DoPandyaTransformation_SingleChannel_XandY(X, Y, Xt_bar_ph, Y_bar_ph, ch);
+
+        //      auto& Zbar_ch = Z_bar.at(ch);
+        auto &Zbar_ch = Z_bar[ch];
+
+        if (Y_bar_ph.size() < 1 or Xt_bar_ph.size() < 1)
+          continue;
+
+        // get the phases for taking the transpose of a Pandya-transformed operator
+        arma::mat PhaseMatZ(nKets_cc, nKets_cc, arma::fill::ones);
+        for (index_t iket = 0; iket < nKets_cc; iket++)
         {
-          PhaseMatZ.col(iket) *= -1;
-          PhaseMatZ.row(iket) *= -1;
+          const Ket &ket = tbc_cc.GetKet(iket);
+          if (Z.modelspace->phase((ket.op->j2 + ket.oq->j2) / 2) < 0)
+          {
+            PhaseMatZ.col(iket) *= -1;
+            PhaseMatZ.row(iket) *= -1;
+          }
         }
+        arma::uvec phkets = arma::join_cols(tbc_cc.GetKetIndex_hh(), tbc_cc.GetKetIndex_ph());
+        auto PhaseMatY = PhaseMatZ.rows(phkets) * hy;
+
+        //                                           [      |     ]
+        //     create full Y matrix from the half:   [  Yhp | Y'ph]   where the prime indicates multiplication by (-1)^(i+j+k+l) h_y
+        //                                           [      |     ]   Flipping hp <-> ph and multiplying by the phase is equivalent to
+        //                                           [  Yph | Y'hp]   having kets |kj> with k>j.
+        //
+        //
+        //      so <il|Zbar|kj> =  <il|Xbar|hp><hp|Ybar|kj> + <il|Xbar|ph><ph|Ybar|kj>
+        //
+        arma::mat Y_bar_ph_flip = arma::join_vert(Y_bar_ph.tail_rows(nph_kets) % PhaseMatY, Y_bar_ph.head_rows(nph_kets) % PhaseMatY);
+        Zbar_ch = Xt_bar_ph * arma::join_horiz(Y_bar_ph, Y_bar_ph_flip);
+
+        // If Z is hermitian, then XY is anti-hermitian, and so XY - YX = XY + (XY)^T
+        if (Z.IsHermitian() and X.IsHermitian() != Y.IsHermitian())
+        {
+          Zbar_ch.head_cols(nKets_cc) += Zbar_ch.head_cols(nKets_cc).t();
+        }
+        else // Z is antihermitian, so XY is hermitian, XY - YX = XY - XY^T
+        {
+          Zbar_ch.head_cols(nKets_cc) -= Zbar_ch.head_cols(nKets_cc).t();
+        }
+
+        // By taking the transpose, we get <il|Zbar|kj> with i>l and k<j, and we want the opposite
+        // By the symmetries of the Pandya-transformed matrix element, that means we pick
+        // up a factor hZ * phase(i+j+k+l). The hZ cancels the hXhY we have for the "head" part of the matrix
+        // so we end up adding in either case.
+        Zbar_ch.tail_cols(nKets_cc) += Zbar_ch.tail_cols(nKets_cc).t() % PhaseMatZ;
       }
-      arma::uvec phkets = arma::join_cols(tbc_cc.GetKetIndex_hh(), tbc_cc.GetKetIndex_ph());
-      auto PhaseMatY = PhaseMatZ.rows(phkets) * hy;
 
-      //                                           [      |     ]
-      //     create full Y matrix from the half:   [  Yhp | Y'ph]   where the prime indicates multiplication by (-1)^(i+j+k+l) h_y
-      //                                           [      |     ]   Flipping hp <-> ph and multiplying by the phase is equivalent to
-      //                                           [  Yph | Y'hp]   having kets |kj> with k>j.
-      //
-      //
-      //      so <il|Zbar|kj> =  <il|Xbar|hp><hp|Ybar|kj> + <il|Xbar|ph><ph|Ybar|kj>
-      //
-      arma::mat Y_bar_ph_flip = arma::join_vert(Y_bar_ph.tail_rows(nph_kets) % PhaseMatY, Y_bar_ph.head_rows(nph_kets) % PhaseMatY);
-      Zbar_ch = Xt_bar_ph * arma::join_horiz(Y_bar_ph, Y_bar_ph_flip);
+      X.profiler.timer["Build Z_bar"] += omp_get_wtime() - t_start;
 
-      // If Z is hermitian, then XY is anti-hermitian, and so XY - YX = XY + (XY)^T
-      if (Z.IsHermitian())
-      {
-        Zbar_ch.head_cols(nKets_cc) += Zbar_ch.head_cols(nKets_cc).t();
-      }
-      else // Z is antihermitian, so XY is hermitian, XY - YX = XY - XY^T
-      {
-        Zbar_ch.head_cols(nKets_cc) -= Zbar_ch.head_cols(nKets_cc).t();
-      }
+      // Perform inverse Pandya transform on Z_bar to get Z
+      t_start = omp_get_wtime();
 
-      // By taking the transpose, we get <il|Zbar|kj> with i>l and k<j, and we want the opposite
-      // By the symmetries of the Pandya-transformed matrix element, that means we pick
-      // up a factor hZ * phase(i+j+k+l). The hZ cancels the hXhY we have for the "head" part of the matrix
-      // so we end up adding in either case.
-      Zbar_ch.tail_cols(nKets_cc) += Zbar_ch.tail_cols(nKets_cc).t() % PhaseMatZ;
-    }
+      // Actually, the Pandya transform has a minus sign in the definition,
+      // and the ph commutator has an overall minus sign, so we're technically subtracting
+      // the inverse Pandya transformation. Also, the inverse Pandya transformation
+      // is just the regular Pandya transformation. The distinction in the code
+      // is because some other commutator-specific things are done at the same time.
+      AddInversePandyaTransformation(Z_bar, Z);
 
-    X.profiler.timer["Build Z_bar"] += omp_get_wtime() - t_start;
-
-    // Perform inverse Pandya transform on Z_bar to get Z
-    t_start = omp_get_wtime();
-
-    // Actually, the Pandya transform has a minus sign in the definition,
-    // and the ph commutator has an overall minus sign, so we're technically subtracting
-    // the inverse Pandya transformation. Also, the inverse Pandya transformation
-    // is just the regular Pandya transformation. The distinction in the code
-    // is because some other commutator-specific things are done at the same time.
-    AddInversePandyaTransformation(Z_bar, Z);
-
-    //   Z.modelspace->scalar_transform_first_pass = false;
-    X.profiler.timer["InversePandyaTransformation"] += omp_get_wtime() - t_start;
-    X.profiler.timer[__func__] += omp_get_wtime() - t_start_full;
+      //   Z.modelspace->scalar_transform_first_pass = false;
+      X.profiler.timer["InversePandyaTransformation"] += omp_get_wtime() - t_start;
+      X.profiler.timer[__func__] += omp_get_wtime() - t_start_full;
   }
 
   // A much slower, but more straighforward implementation which can handle parity and isospin changing operators.

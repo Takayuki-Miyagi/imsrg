@@ -86,7 +86,7 @@ class Jacobi3BME
 //  void TcoeffUnHash(std::string& key, uint64_t& na, uint64_t& nb, uint64_t& nc, uint64_t& Jab, uint64_t& twoJ, uint64_t& jac1, uint64_t& jac2, uint64_t& twoJ12, uint64_t& Lcm );
   void TcoeffUnHash(std::string& key, int& na, int& nb, int& nc, int& Jab, int& twoJ, int& jac1, int& jac2, int& twoJ12, int& Lcm );
 //  void GetV3mon_all( std::vector<uint64_t>& keys, std::vector<double>& v3mon, ModelSpace& modelspace ); //< Get all the monopoles in one go, which should be more efficient
-  void GetV3mon_all( HartreeFock& hf ); //< Get all the monopoles in one go, which should be more efficient
+//  void GetV3mon_all( HartreeFock& hf ); //< Get all the monopoles in one go, which should be more efficient
 
   double Tcoeff_wrapper( Ket3& ket, int Jab, int twoJ, jacobi1_state& jac1, jacobi2_state& jac2, int twoJ12, int Ncm, int Lcm);
 

@@ -52,22 +52,36 @@ TwoBodyME::TwoBodyME(ModelSpace* ms, int rJ, int rT, int p)
 
  TwoBodyME& TwoBodyME::operator+=(const TwoBodyME& rhs)
  {
-   for ( auto& itmat : MatEl )
+   if (not this->IsAllocated() )
    {
-      auto ch_bra = itmat.first[0];
-      auto ch_ket = itmat.first[1];
-      itmat.second += rhs.GetMatrix(ch_bra,ch_ket);
+      *this = rhs;
+   }
+   else
+   {
+     for ( auto& itmat : MatEl )
+     {
+        auto ch_bra = itmat.first[0];
+        auto ch_ket = itmat.first[1];
+        itmat.second += rhs.GetMatrix(ch_bra,ch_ket);
+     }
    }
    return *this;
  }
 
  TwoBodyME& TwoBodyME::operator-=(const TwoBodyME& rhs)
  {
-   for ( auto& itmat : rhs.MatEl )
+   if (not this->IsAllocated() )
    {
-      auto ch_bra = itmat.first[0];
-      auto ch_ket = itmat.first[1];
-      GetMatrix(ch_bra,ch_ket) -= itmat.second;
+      *this = rhs * (-1.0);
+   }
+   else
+   {
+      for ( auto& itmat : rhs.MatEl )
+      {
+         auto ch_bra = itmat.first[0];
+         auto ch_ket = itmat.first[1];
+         GetMatrix(ch_bra,ch_ket) -= itmat.second;
+      }
    }
    return *this;
  }
@@ -84,8 +98,9 @@ void TwoBodyME::Allocate()
      for (size_t ch_ket=ch_bra; ch_ket<nChannels;++ch_ket)
      {
         TwoBodyChannel& tbc_ket = modelspace->GetTwoBodyChannel(ch_ket);
-        if ( std::abs(tbc_bra.J-tbc_ket.J)>rank_J ) continue;
-        if ( (tbc_bra.J+tbc_ket.J)<rank_J ) continue;
+        if ( not AngMom::Triangle(tbc_bra.J,tbc_ket.J,rank_J) ) continue;
+//        if ( std::abs(tbc_bra.J-tbc_ket.J)>rank_J ) continue;
+//        if ( (tbc_bra.J+tbc_ket.J)<rank_J ) continue;
         if ( std::abs(tbc_bra.Tz-tbc_ket.Tz)!=rank_T ) continue; // we don't couple to T, so rank_T really means |delta Tz|
         if ( (tbc_bra.parity + tbc_ket.parity + parity)%2>0 ) continue;
         MatEl[{ch_bra,ch_ket}] =  arma::mat(tbc_bra.GetNumberKets(), tbc_ket.GetNumberKets(), arma::fill::zeros);
@@ -117,6 +132,11 @@ void TwoBodyME::SetNonHermitian()
   antihermitian = false;
 }
 
+
+bool TwoBodyME::IsAllocated()const
+{
+   return allocated;
+}
 
 
 /// This returns the matrix element times a factor \f$ \sqrt{(1+\delta_{ij})(1+\delta_{kl})} \f$
@@ -321,14 +341,12 @@ double TwoBodyME::GetTBME_J(int j_bra, int j_ket, int a, int b, int c, int d) co
    int Tz_ket = (oc.tz2+od.tz2)/2;
    if ( (parity+parity_bra+parity_ket)%2 > 0) return 0;
    if ( std::abs(Tz_bra-Tz_ket)!=rank_T) return 0;
-   if ( std::abs(j_bra-j_ket) > rank_J) return 0;
-   if ( j_bra + j_ket < rank_J) return 0;
+   if ( not AngMom::Triangle(j_bra,j_ket,rank_J) ) return 0;
+   if ( not AngMom::Triangle(oa.j2,ob.j2,2*j_bra) ) return 0;
+   if ( not AngMom::Triangle(oc.j2,od.j2,2*j_ket) ) return 0;
    int ch_bra = modelspace->GetTwoBodyChannelIndex(j_bra,parity_bra,Tz_bra);
    int ch_ket = modelspace->GetTwoBodyChannelIndex(j_ket,parity_ket,Tz_ket);
    return GetTBME(ch_bra,ch_ket,a,b,c,d);
-//   if (ch_bra <= ch_ket)
-//    return GetTBME(ch_bra,ch_ket,a,b,c,d);
-//   return modelspace->phase(j_bra - j_ket) * GetTBME(ch_ket,ch_bra,c,d,a,b);
 }
 void TwoBodyME::SetTBME_J(int j_bra, int j_ket, int a, int b, int c, int d, double tbme)
 {
@@ -336,8 +354,10 @@ void TwoBodyME::SetTBME_J(int j_bra, int j_ket, int a, int b, int c, int d, doub
    Orbit& ob = modelspace->GetOrbit(b);
    Orbit& oc = modelspace->GetOrbit(c);
    Orbit& od = modelspace->GetOrbit(d);
+   // std::cout<<'here'<<std::endl;
    int ch_bra = modelspace->GetTwoBodyChannelIndex(j_bra,(oa.l+ob.l)%2,(oa.tz2+ob.tz2)/2);
    int ch_ket = modelspace->GetTwoBodyChannelIndex(j_ket,(oc.l+od.l)%2,(oc.tz2+od.tz2)/2);
+   // std::cout<<'here'<<std::endl;
    SetTBME(ch_bra,ch_ket,a,b,c,d,tbme);
 }
 void TwoBodyME::AddToTBME_J(int j_bra, int j_ket, int a, int b, int c, int d, double tbme)
@@ -363,8 +383,9 @@ double TwoBodyME::GetTBME_J_norm(int j_bra, int j_ket, int a, int b, int c, int 
    int Tz_ket = (oc.tz2+od.tz2)/2;
    if ( (parity+parity_bra+parity_ket)%2 > 0) return 0;
    if ( std::abs(Tz_bra-Tz_ket)!=rank_T) return 0;
-   if ( std::abs(j_bra-j_ket) > rank_J) return 0;
-   if ( j_bra + j_ket < rank_J) return 0;
+   if ( not AngMom::Triangle(j_bra,j_ket,rank_J) ) return 0;
+//   if ( std::abs(j_bra-j_ket) > rank_J) return 0;
+//   if ( j_bra + j_ket < rank_J) return 0;
    int ch_bra = modelspace->GetTwoBodyChannelIndex(j_bra,parity_bra,Tz_bra);
    int ch_ket = modelspace->GetTwoBodyChannelIndex(j_ket,parity_ket,Tz_ket);
    return GetTBME_norm(ch_bra,ch_ket,a,b,c,d);
@@ -386,8 +407,9 @@ void TwoBodyME::GetTBME_J_norm_twoOps(const TwoBodyME& OtherTBME, int j_bra, int
    tbme_other =0;
    if ( (parity+parity_bra+parity_ket)%2 > 0) return;
    if ( std::abs(Tz_bra-Tz_ket)!=rank_T) return;
-   if ( std::abs(j_bra-j_ket) > rank_J) return;
-   if ( j_bra + j_ket < rank_J) return;
+   if ( not AngMom::Triangle(j_bra,j_ket,rank_J) ) return;
+//   if ( std::abs(j_bra-j_ket) > rank_J) return;
+//   if ( j_bra + j_ket < rank_J) return;
    int ch_bra = modelspace->GetTwoBodyChannelIndex(j_bra,parity_bra,Tz_bra);
    int ch_ket = modelspace->GetTwoBodyChannelIndex(j_ket,parity_ket,Tz_ket);
 
@@ -792,6 +814,12 @@ void TwoBodyME::Eye()
    }
 }
 
+void TwoBodyME::PrintMatrix(size_t chbra,size_t chket) const
+{
+   std::cout.precision(12); 
+   MatEl.at({chbra,chket}).raw_print();
+//   MatEl.at({chbra,chket}).print();
+}
 
 void TwoBodyME::PrintAllMatrices() const
 {

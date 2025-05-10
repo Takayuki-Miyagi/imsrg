@@ -13,6 +13,9 @@ namespace BCH
     extern bool use_factorized_correction_BCH_Product;
     extern bool use_factorized_correct_ZBterm;
     extern bool only_2b_omega;
+    extern bool TurnOn_comm223_231;
+    extern bool TurnOn_comm223_232;
+
 
     extern double bch_transform_threshold;
     extern double bch_product_threshold;
@@ -36,6 +39,9 @@ namespace BCH
     void SetUseFactorizedCorrectionBCH_product(bool tf);
     void SetUseFactorized_Correct_ZBTerm(bool tf);
     void SetOnly2bOmega(bool tf);
+
+    void SetComm223_231(bool tf);
+    void SetComm223_232(bool tf);
 
     void Set_BCH_Transform_Threshold(double x);
     void Set_BCH_Product_Threshold(double x);

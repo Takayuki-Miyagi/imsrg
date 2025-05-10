@@ -24,6 +24,7 @@
 #include <map>
 #include <array>
 #include <armadillo>
+#include <iostream>
 
 namespace Commutator
 {
@@ -31,12 +32,15 @@ namespace Commutator
     void DoTensorPandyaTransformation(const Operator &Z, std::map<std::array<index_t, 2>, arma::mat> &);
     void DoTensorPandyaTransformation_SingleChannel(const Operator &Z, arma::mat &X, int ch_bra_cc, int ch_ket_cc);
     void AddInverseTensorPandyaTransformation(Operator &Z, const std::map<std::array<index_t, 2>, arma::mat> &);
-    std::deque<arma::mat> InitializePandya(Operator &Z, size_t nch, std::string orientation);
+    std::deque<arma::mat> InitializePandya(Operator &Z, size_t nch, std::string orientation, int X_parity);
 
     void comm111st(const Operator &X, const Operator &Y, Operator &Z);
     void comm121st(const Operator &X, const Operator &Y, Operator &Z);
     void comm122st(const Operator &X, const Operator &Y, Operator &Z);
+    void comm221st(const Operator &X, const Operator &Y, Operator &Z);
+    void comm222_pp_hhst(const Operator &X, const Operator &Y, Operator &Z);
     void comm222_pp_hh_221st(const Operator &X, const Operator &Y, Operator &Z);
+    void comm222_pp_hhst(const Operator &X, const Operator &Y, Operator &Z);
     void comm222_phst(const Operator &X, const Operator &Y, Operator &Z);
 
     // scalar-tensor with a 3b operator

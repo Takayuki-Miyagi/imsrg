@@ -600,6 +600,7 @@ void ThreeBodyStorage_no2b<StoreType>::ReadFile( std::vector<std::string>& Strin
    }
  
  
+   size_t LINESIZE=496; // for reading the header line.
    size_t n_elem_to_read = CountME(Emax_file, E2max_file, E3max_file, Lmax_file, file_Orbits); // number of elements we want
  
    if ( filemode == "bin" ) // binary. check how big the file is.
@@ -617,10 +618,16 @@ void ThreeBodyStorage_no2b<StoreType>::ReadFile( std::vector<std::string>& Strin
      infile = std::ifstream(FileName, std::ios_base::in | std::ios_base::binary);
      zipstream.push(boost::iostreams::gzip_decompressor());
      zipstream.push(infile);
+     // skip the first line
+     char line[LINESIZE];
+     zipstream.getline(line,LINESIZE);
    }
    else if (filemode == "me3j" ) // a plain-text me3j file
    {
      infile = std::ifstream(FileName);
+     // skip the first line
+     char line[LINESIZE];
+     infile.getline(line,LINESIZE);
    }
  
  

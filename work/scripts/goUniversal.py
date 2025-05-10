@@ -11,7 +11,7 @@
 ##  						TRIUMF Nov 2016
 ######################################################################
 
-from os import path,environ,mkdir,remove
+from os import path,environ,mkdir,remove,system
 from sys import argv
 from subprocess import call,PIPE
 from time import time,sleep
@@ -20,7 +20,9 @@ from datetime import datetime
 ### Check to see what type of batch submission system we're dealing with
 BATCHSYS = 'NONE'
 if call('type '+'qsub', shell=True, stdout=PIPE, stderr=PIPE) == 0: BATCHSYS = 'PBS'
-elif call('type '+'srun', shell=True, stdout=PIPE, stderr=PIPE) == 0: BATCHSYS = 'SLURM'
+elif call('type '+'srun', shell=True, stdout=PIPE, stderr=PIPE) == 0: 
+  BATCHSYS = 'SLURM'
+  system("source ~/.bashrc")
 
 ### The code uses OpenMP and benefits from up to at least 24 threads
 NTHREADS=12
@@ -178,6 +180,7 @@ for Z in range(16,17):
      ARGS['intfile']  = 'output/' + jobname
 
      cmd = ' '.join([exe] + ['%s=%s'%(x,ARGS[x]) for x in ARGS])
+     print(cmd)
 
   ### Submit the job if we're running in batch mode, otherwise just run in the current shell
      if batch_mode==True:

@@ -27,6 +27,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+
 #include "ModelSpace.hh"
 #include "Operator.hh"
 #include "ThreeBodyME.hh"
@@ -59,8 +60,10 @@ class ReadWrite
    size_t Jacobi2b_Channel_Hash(int S, int T, int Tz, int J);
    void Jacobi2b_Channel_UnHash(size_t key, int& S, int& T, int& Tz, int& J);
    void ReadDarmstadt_2bodyRel( std::string filename, Operator& Op );
+   void ReadH2_2body( std::string filename, Operator& Op );
    void Read2bCurrent_Navratil( std::string filename, Operator& Op);
    void Write_me2j( std::string filename, Operator& op, int emax, int e2max, int lmax);
+   void Write_me2j_gz( std::string filename, Operator& op, int emax, int e2max, int lmax);
    void Write_me3j( std::string filename, Operator& op, int E1max, int E2max, int E3max);
    void WriteTBME_Navratil( std::string filename, Operator& Hbare);
    void WriteNuShellX_sps( Operator& op, std::string filename);
@@ -114,10 +117,11 @@ class ReadWrite
    // added by T.Miyagi
    void ReadTokyo(std::string filename, Operator& op, std::string fmt);
    void ReadTokyo(std::string filename, Operator& op);
+   void ReadTensorTokyo(std::string filename, Operator& op); //  added by B.C. He 
    void WriteTokyo(Operator& op, std::string filename, std::string mode);
-   void WriteTokyoFull(Operator& op, std::string filename); // only for Hamiltonian
+   void WriteTokyoFull(Operator& op, std::string filename);  // only for Hamiltonian
    void WriteTensorTokyo(std::string filename, Operator& op);
-   Operator ReadOperator2b_Miyagi(std::string, ModelSpace&); // general operator me2j-like format
+   Operator ReadOperator2b_Miyagi(std::string, ModelSpace &); // general operator me2j-like format
    void skip_comments(std::ifstream&);
 
 
