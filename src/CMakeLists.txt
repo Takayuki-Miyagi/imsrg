@@ -41,7 +41,7 @@ find_package(ZLIB REQUIRED)
 
 
 add_compile_options(-frounding-math)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(IMSRGPLUSPLUS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -725,6 +725,20 @@ target_link_libraries(
     OpenMP::OpenMP_CXX
 )
 
+add_executable(
+    op_evolution
+    op_evolution.cc
+)
+target_link_libraries(
+    op_evolution
+    PUBLIC
+    IMSRG
+    Parameters
+    PhysicalConstants
+    Version
+    OpenMP::OpenMP_CXX
+)
+
 
 #target_link_libraries(
 #    UnitTest
@@ -747,20 +761,46 @@ if(IMSRG_BUILD_PYTHON_BINDINGS)
 endif()
 
 # Install imsrg executable
-install(TARGETS imsrg++ 
-        DESTINATION ${INSTDIR}/bin 
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+get_filename_component(CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" ABSOLUTE)
+#install(TARGETS imsrg++ 
+#        DESTINATION ${INSTDIR}/bin 
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+#
+#install(TARGETS op_evolution
+#        DESTINATION ${INSTDIR}/bin 
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/imsrg++ ${INSTDIR}/bin
+    )"
+  )
+
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/op_evolution ${INSTDIR}/bin
+    )"
+  )
 
 # Install library
-install(TARGETS IMSRG  
-        DESTINATION ${INSTDIR}/lib 
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+#install(TARGETS IMSRG  
+#        DESTINATION ${INSTDIR}/lib 
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/libIMSRG.so ${INSTDIR}/lib/libIMSRG.so
+    )"
+  )
 
 # Install the header files
 file(GLOB HEADERS *.hh)
-install(FILES ${HEADERS} 
-        DESTINATION ${INSTDIR}/include
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+#install(FILES ${HEADERS} 
+#        DESTINATION ${INSTDIR}/include
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_SOURCE_DIR}/${HEADERS} ${INSTDIR}/include
+    )"
+  )
 
 include(CTest)
 list(APPEND CMAKE_CTEST_ARGUMENTS "--verbose")
