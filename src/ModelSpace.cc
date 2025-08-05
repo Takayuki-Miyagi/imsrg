@@ -1526,7 +1526,7 @@ void ModelSpace::ResetFirstPass()
 
 uint64_t ModelSpace::SixJHash(double j1, double j2, double j3, double J1, double J2, double J3)
 {
-    
+
   uint64_t twoj1 = 2*j1;
   uint64_t twoj2 = 2*j2;
   uint64_t twoj3 = 2*j3;
@@ -1538,12 +1538,12 @@ uint64_t ModelSpace::SixJHash(double j1, double j2, double j3, double J1, double
    if ( (twoj1+twoj2+twoj3+twoJ1+twoJ2+twoJ3)%2==1)
    {
     if ( (twoj1%2)==1 )
-    { 
+    {
       std::swap( twoj1, twoJ1);
       std::swap( twoj2, twoJ2);
     }
     if ( (twoj2%2)==1 )
-    { 
+    {
       std::swap( twoj2, twoJ2);
       std::swap( twoj3, twoJ3);
     }
@@ -1551,12 +1551,12 @@ uint64_t ModelSpace::SixJHash(double j1, double j2, double j3, double J1, double
    else // otherwise, we can permute so the larger entries are on the bottom row
    {
     if ( (twoj1>twoJ1) )
-    { 
+    {
       std::swap( twoj1, twoJ1);
       std::swap( twoj2, twoJ2);
     }
     if ( (twoj2>twoJ2) )
-    { 
+    {
       std::swap( twoj2, twoJ2);
       std::swap( twoj3, twoJ3);
     }

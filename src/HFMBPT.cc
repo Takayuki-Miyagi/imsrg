@@ -777,7 +777,7 @@ void HFMBPT::PrintSPEandWF()
   arma::mat F_natbasis = C_HO2NAT.t() * F * C_HO2NAT;
 
 
-   
+
   std::cout << std::fixed << std::setw(3) << "i" << ": " << std::setw(3) << "n" << " " << std::setw(3) << "l" << " "
        << std::setw(3) << "2j" << " " << std::setw(3) << "2tz" << "   " << std::setw(12) << "SPE" << " " << std::setw(12) << "occ."
        << " " << std::setw(12) << "occNAT" << "   |   " << " overlaps" << std::endl;
@@ -828,7 +828,7 @@ void HFMBPT::ReorderHFMBPTCoefficients()
       arma::uvec sorted_indices = arma::sort_index( spe_NAT, "ascend");
       arma::uvec orbvec_sorted = orbvec(sorted_indices);
       C_HF2NAT.submat(orbvec, orbvec) = C_HF2NAT( orbvec, orbvec_sorted); // sort the column indices, <row|col> = <HF|NAT>
-      Occ(orbvec) = Occ(orbvec_sorted); 
+      Occ(orbvec) = Occ(orbvec_sorted);
     }
     for ( auto i : HartreeFock::modelspace->all_orbits )
     {
@@ -850,7 +850,7 @@ void HFMBPT::ReorderHFMBPTCoefficients()
       arma::uvec sorted_indices = arma::sort_index( impacts_chan, "ascend");
       arma::uvec orbvec_sorted = orbvec(sorted_indices);
       C_HF2NAT.submat(orbvec, orbvec) = C_HF2NAT( orbvec, orbvec_sorted); // sort the column indices, <row|col> = <HF|NAT>
-      Occ(orbvec) = Occ(orbvec_sorted); 
+      Occ(orbvec) = Occ(orbvec_sorted);
     }
     for ( auto i : HartreeFock::modelspace->all_orbits )
     {
@@ -912,7 +912,7 @@ double HFMBPT::GetTransformed3bme( Operator& OpIn, int Jab, int Jde, int J2,  si
 
 
 
-// Modified version of GetMP2_Energy. Determines each orbital's impact on the total MP2 energy 
+// Modified version of GetMP2_Energy. Determines each orbital's impact on the total MP2 energy
 // (i.e., by how much would EMP2 change if this single orbital were removed)
 arma::vec HFMBPT::GetMP2_Impacts(Operator& OpIn) const
 {

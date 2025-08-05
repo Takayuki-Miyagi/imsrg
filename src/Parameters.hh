@@ -79,12 +79,15 @@ std::map<std::string,std::string> Parameters::string_par = {
   {"use_brueckner_bch",          "false"},	// switch to Brueckner version of BCH
   {"valence_file_format",       "tokyo"},	// file format for valence space interaction. Can be tokyo, nushellx, or antoine (antoine fmt is buggy)
   {"occ_file",			"none"},	// name of file containing orbit occupations
+  {"density_file",			"none"},	// name of file containing orbit occupations
+  {"me1j_file",			"none"},	// name of file containing orbit occupations
+  {"me2jp_file",			"none"},	// name of file containing orbit occupations
   {"goose_tank",		"false"},	// do goose_tank correction to commutators
   {"write_omega",		"false"},	// write omega to disk
   {"nucleon_mass_correction",	"false"},	// include effect of proton-neutron mass splitting
   {"hunter_gatherer",	        "false"},	// use hunter-gatherer approach to splitting omega
   {"relativistic_correction",   "false"},       // include the p^4 relativistic correction to the kinetic energy
-  {"IMSRG3",                    "false"},       // include 3-body terms in commutators. 
+  {"IMSRG3",                    "false"},       // include 3-body terms in commutators.
   {"imsrg3_n7",                 "false"},       // include only n^7 scaling 3-body terms in commutators. Only does something if IMSRG3=true.
   {"imsrg3_mp4",                 "false"},       // include only 4th order (in PT analysis) 3-body terms in commutators. Only does something if IMSRG3=true.
   {"imsrg3_at_end",             "false"},       // After doing Magnus IMSRG(2) to obtain Omega, evaluate e^Omega H e^-Omega at the IMSRG(3) level
@@ -97,9 +100,9 @@ std::map<std::string,std::string> Parameters::string_par = {
   {"NAT_order",                 "occupation"},  // When using natural orbitals, select an ordering for labeling orbits. Default is decreasing occ.
   {"store_3bme_pn",             "false"},       // should the 3-body matrix elements be stored in proton-neutron formalism? Default is isospin.
   {"discard_residual_input3N",  "false"},       // If we're doing IMSRG3, should we discard the residual input 3N (only keep induced)?
-  {"only_2b_eta",               "false"},       // If we're doing IMSRG3, keep eta as 2b 
-  {"only_2b_omega",             "false"},       // If we're doing IMSRG3, keep omega (the magnus operator) as 2b 
-  {"perturbative_triples",      "false"},       // Compute perturbative energy shift due to [2,2]->3 induced 3-body 
+  {"only_2b_eta",               "false"},       // If we're doing IMSRG3, keep eta as 2b
+  {"only_2b_omega",             "false"},       // If we're doing IMSRG3, keep omega (the magnus operator) as 2b
+  {"perturbative_triples",      "false"},       // Compute perturbative energy shift due to [2,2]->3 induced 3-body
   {"write_HO_ops",              "false"},       // Write the HO operator before doing the HF transormation ;  Added by Antoine Belley
   {"write_HF_ops",              "false"},       // Write the HF operators before doing IMSRG transformation ; Added by Antoine Belley
   {"approx_3f2",                "false"},       //
@@ -244,7 +247,7 @@ std::string Parameters::DefaultFlowFile()
   std::ostringstream oss;
   oss << "output/BCH_" << string_par["method"] << "_" << string_par["reference"] << "_" << string_par["valence_space"] << "_hw" << std::setprecision(0) << double_par["hw"] << "_e" << int_par["emax"] << "_A" << int_par["A"];
   return oss.str();
-  
+
 //  char strbuf[200];
 //  sprintf(strbuf, "output/BCH_%s_%s_%s_hw%.0f_e%d_A%d.dat",string_par["method"].c_str(),string_par["reference"].c_str(),string_par["valence_space"].c_str(),double_par["hw"],int_par["emax"],int_par["A"]);
 //  return std::string(strbuf);

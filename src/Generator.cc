@@ -89,7 +89,7 @@ Operator Generator::GetHod(Operator& H)
       if (generator_type == sm )  return GetHod_ShellModel(H);
    }
    std::cout << "GetHod not implemented for generator type " << generator_type << "   so you get zero." << std::endl;
-   return 0*H; 
+   return 0*H;
 }
 
 
@@ -108,11 +108,11 @@ void Generator::SetDenominatorDeltaOrbit(std::string orb)
 
 
 // Epstein-Nesbet energy denominators for White-type generator_types
-double Generator::Get1bDenominator(int i, int j) 
+double Generator::Get1bDenominator(int i, int j)
 {
    double ni = H->modelspace->GetOrbit(i).occ;
    double nj = H->modelspace->GetOrbit(j).occ;
-   
+
    double denominator = H->OneBody(i,i) - H->OneBody(j,j);
    if ( denominator_partitioning == Epstein_Nesbet)
    {
@@ -141,7 +141,7 @@ double Generator::Get1bDenominator(int i, int j)
    //    else
    //    {
    //       denominator = - denominator_cutoff;
-   //    }    
+   //    }
    // }
    if (std::abs(denominator)<denominator_cutoff)
      denominator = denominator_cutoff;
@@ -150,7 +150,7 @@ double Generator::Get1bDenominator(int i, int j)
 }
 
 
-double Generator::Get2bDenominator(int ch_bra, int ch_ket, int ibra, int iket) 
+double Generator::Get2bDenominator(int ch_bra, int ch_ket, int ibra, int iket)
 {
    TwoBodyChannel& tbc_bra = H->modelspace->GetTwoBodyChannel(ch_bra);
    TwoBodyChannel& tbc_ket = H->modelspace->GetTwoBodyChannel(ch_ket);
@@ -222,7 +222,7 @@ double Generator::Get3bDenominator( int i, int j, int k, int l, int m, int n )
 
 // Keep the Jdependence for the Gamma_ijij and Gamma_klkl terms, because it's
 // relatively unambiguous to work out
-double Generator::Get2bDenominator_Jdep(int ch, int ibra, int iket) 
+double Generator::Get2bDenominator_Jdep(int ch, int ibra, int iket)
 {
    TwoBodyChannel& tbc = H->modelspace->GetTwoBodyChannel(ch);
    Ket & bra = tbc.GetKet(ibra);
@@ -298,7 +298,7 @@ void Generator::ConstructGenerator_SingleRef(std::function<double (double,double
 }
 
 
- 
+
 
 
 // Off-diagonal pieces are <abc|ijk> = <ppp|ccc> where c is core and p is either valence or q (that is, not core).
@@ -336,7 +336,7 @@ void Generator::ConstructGenerator_SingleRef_3body(std::function<double (double,
         size_t b = bra.q;
         size_t c = bra.r;
 
-        
+
         for (size_t iket=0; iket<nkets3; iket++)
         {
            Ket3& ket = Tbc.GetKet(iket);
@@ -359,7 +359,7 @@ void Generator::ConstructGenerator_SingleRef_3body(std::function<double (double,
            double eta =  etafunc( ME_od, denominator);
 
            Eta->ThreeBody.AddToME_pn_ch( ch3,ch3,ibra,iket,  eta); // hermitian conjugate automatically gets added
-           
+
         }// for iket
       }// for ibra
 
@@ -371,7 +371,7 @@ void Generator::ConstructGenerator_SingleRef_3body(std::function<double (double,
 
 
 
- 
+
 void Generator::ConstructGenerator_ShellModel(std::function<double (double,double)>& eta_func)
 {
    // One body piece -- make sure the valence one-body part is diagonal
@@ -387,7 +387,7 @@ void Generator::ConstructGenerator_ShellModel(std::function<double (double,doubl
    }
 
 
-   // Two body piece -- eliminate ppvh and pqvv  
+   // Two body piece -- eliminate ppvh and pqvv
 
    int nchan = H->modelspace->GetNumberTwoBodyChannels();
    for (int ch=0;ch<nchan;++ch)
@@ -411,7 +411,7 @@ void Generator::ConstructGenerator_ShellModel(std::function<double (double,doubl
       // Decouple the valence space
       for ( auto& iket : tbc.GetKetIndex_vv() )
       {
-         for ( auto& ibra : VectorUnion( tbc.GetKetIndex_qv(), tbc.GetKetIndex_qq() ) ) 
+         for ( auto& ibra : VectorUnion( tbc.GetKetIndex_qv(), tbc.GetKetIndex_qq() ) )
          {
             double denominator = Get2bDenominator(ch,ibra,iket);
             ETA2(ibra,iket) = eta_func(H2(ibra,iket) , denominator);
@@ -449,7 +449,7 @@ void Generator::ConstructGenerator_ShellModel_3body(std::function<double (double
       for (size_t ibra=0; ibra<nkets3; ibra++)
       {
         Ket3& bra = Tbc.GetKet(ibra);
-        if (   (bra.op->cvq==0) or (bra.oq->cvq==0) or (bra.oR->cvq==0)  ) continue; //cvq==0 means core, so we want all v or q in the bra. 
+        if (   (bra.op->cvq==0) or (bra.oq->cvq==0) or (bra.oR->cvq==0)  ) continue; //cvq==0 means core, so we want all v or q in the bra.
         double d_ei = std::abs( 2*bra.op->n + bra.op->l - e_fermi[bra.op->tz2]);
         double d_ej = std::abs( 2*bra.oq->n + bra.oq->l - e_fermi[bra.oq->tz2]);
         double d_ek = std::abs( 2*bra.oR->n + bra.oR->l - e_fermi[bra.oR->tz2]);
@@ -461,11 +461,11 @@ void Generator::ConstructGenerator_ShellModel_3body(std::function<double (double
         size_t i = bra.p;
         size_t j = bra.q;
         size_t k = bra.r;
-        
+
         for (size_t iket=0; iket<nkets3; iket++)
         {
            Ket3& ket = Tbc.GetKet(iket);
-           if (   (ket.op->cvq==2) or (ket.oq->cvq==2) or (ket.oR->cvq==2)  ) continue; //cvq==2 means q, i.e. not core or valence. we want all c or v in ket. 
+           if (   (ket.op->cvq==2) or (ket.oq->cvq==2) or (ket.oR->cvq==2)  ) continue; //cvq==2 means q, i.e. not core or valence. we want all c or v in ket.
            if (  (bra.op->cvq==1) and (bra.oq->cvq==1) and (bra.oR->cvq==1) and (ket.op->cvq==1) and (ket.oq->cvq==1) and (ket.oR->cvq==1) ) continue;// no vvvvvv
 
            double d_ea = std::abs( 2*ket.op->n + ket.op->l - e_fermi[ket.op->tz2]);
@@ -486,7 +486,7 @@ void Generator::ConstructGenerator_ShellModel_3body(std::function<double (double
            double eta =  etafunc( ME_od, denominator);
 
            Eta->ThreeBody.AddToME_pn_ch( ch3,ch3,ibra,iket,  eta); // hermitian conjugate automatically gets added
-           
+
         }// for iket
       }// for ibra
 
@@ -563,7 +563,7 @@ void Generator::ConstructGenerator_HartreeFock()
          Eta->OneBody(i,j) = H->OneBody(i,j)/denominator;
          Eta->OneBody(j,i) = - Eta->OneBody(i,j);
       }
-   } 
+   }
 }
 
 
@@ -586,7 +586,7 @@ void Generator::ConstructGenerator_1PA(std::function<double(double,double)>& eta
    }
 
 
-   // Two body piece -- eliminate ppvh and pqvv  
+   // Two body piece -- eliminate ppvh and pqvv
 
    int nchan = H->modelspace->GetNumberTwoBodyChannels();
    for (int ch=0;ch<nchan;++ch)
@@ -659,7 +659,7 @@ Operator  Generator::GetHod_SingleRef(Operator& H )
         Ket3& bra = Tbc.GetKet(ibra);
         // bra should be ppp where p is eiher v or q
         if ( (  (bra.op->cvq==0) or (bra.oq->cvq==0) or (bra.oR->cvq==0) ) ) continue; //cvq==0 means core orbit
-        
+
         for (size_t iket=0; iket<nkets3; iket++)
         {
            Ket3& ket = Tbc.GetKet(iket);
@@ -669,7 +669,7 @@ Operator  Generator::GetHod_SingleRef(Operator& H )
            double h_abcijk = H.ThreeBody.GetME_pn_ch(ch3,ch3,ibra,iket );
 
            Hod.ThreeBody.SetME_pn_ch( ch3,ch3,ibra,iket,  h_abcijk); // hermitian conjugate automatically gets added
-           
+
         }// for iket
       }// for ibra
 
@@ -682,7 +682,7 @@ Operator  Generator::GetHod_SingleRef(Operator& H )
 
 
 
- 
+
 Operator Generator::GetHod_ShellModel(Operator& H)
 {
    Operator Hod = 0.0* H;
@@ -731,9 +731,9 @@ Operator Generator::GetHod_ShellModel(Operator& H)
     }
 
 
- 
+
     // off-diagonal:   <ppp|ccc>, <ppp|vcc>, <ppp|vvc>, <qpp|vvv>  where p is v or q
-    //                 
+    //
     size_t nch3 = H.modelspace->GetNumberThreeBodyChannels();
     #pragma omp parallel for schedule(dynamic,1)
     for (size_t ch3=0; ch3<nch3; ch3++)
@@ -743,13 +743,13 @@ Operator Generator::GetHod_ShellModel(Operator& H)
       for (size_t ibra=0; ibra<nkets3; ibra++)
       {
         Ket3& bra = Tbc.GetKet(ibra);
-        if (   (bra.op->cvq==0) or (bra.oq->cvq==0) or (bra.oR->cvq==0)  ) continue; //cvq==0 means core, so we want all v or q in the bra. 
+        if (   (bra.op->cvq==0) or (bra.oq->cvq==0) or (bra.oR->cvq==0)  ) continue; //cvq==0 means core, so we want all v or q in the bra.
 
-        
+
         for (size_t iket=0; iket<nkets3; iket++)
         {
            Ket3& ket = Tbc.GetKet(iket);
-           if (   (ket.op->cvq==2) or (ket.oq->cvq==2) or (ket.oR->cvq==2)  ) continue; //cvq==2 means q, i.e. not core or valence. we want all c or v in ket. 
+           if (   (ket.op->cvq==2) or (ket.oq->cvq==2) or (ket.oR->cvq==2)  ) continue; //cvq==2 means q, i.e. not core or valence. we want all c or v in ket.
            if (  (bra.op->cvq==1) and (bra.oq->cvq==1) and (bra.oR->cvq==1) and (ket.op->cvq==1) and (ket.oq->cvq==1) and (ket.oR->cvq==1) ) continue;// no vvvvvv
 
 
@@ -757,7 +757,7 @@ Operator Generator::GetHod_ShellModel(Operator& H)
 
            Hod.ThreeBody.SetME_pn_ch( ch3,ch3,ibra,iket,  ME_od); // hermitian conjugate automatically gets added
 
-           
+
         }// for iket
       }// for ibra
 
@@ -767,5 +767,5 @@ Operator Generator::GetHod_ShellModel(Operator& H)
 
     return Hod;
 }
- 
+
 

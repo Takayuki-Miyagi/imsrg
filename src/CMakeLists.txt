@@ -715,8 +715,21 @@ add_executable(
     imsrg++
     imsrg++.cc
 )
+add_executable(
+    mrd_imsrg++
+    test.cc
+)
 target_link_libraries(
     imsrg++
+    PUBLIC
+    IMSRG
+    Parameters
+    PhysicalConstants
+    Version
+    OpenMP::OpenMP_CXX
+)
+target_link_libraries(
+    mrd_imsrg++
     PUBLIC
     IMSRG
     Parameters
@@ -762,16 +775,21 @@ endif()
 
 # Install imsrg executable
 get_filename_component(CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" ABSOLUTE)
-#install(TARGETS imsrg++ 
-#        DESTINATION ${INSTDIR}/bin 
-#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+#install(TARGETS imsrg++
+#        DESTINATION ${INSTDIR}/bin
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 #
 #install(TARGETS op_evolution
-#        DESTINATION ${INSTDIR}/bin 
-#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE) 
+#        DESTINATION ${INSTDIR}/bin
+#        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "
   execute_process(
     COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/imsrg++ ${INSTDIR}/bin
+    )"
+  )
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/mrd_imsrg++ ${INSTDIR}/bin
     )"
   )
 
@@ -782,18 +800,23 @@ install(CODE "
   )
 
 # Install library
-#install(TARGETS IMSRG  
-#        DESTINATION ${INSTDIR}/lib 
+#install(TARGETS IMSRG
+#        DESTINATION ${INSTDIR}/lib
 #        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "
   execute_process(
     COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/libIMSRG.so ${INSTDIR}/lib/libIMSRG.so
     )"
   )
+install(CODE "
+  execute_process(
+    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/pyIMSRG.so ${INSTDIR}/lib/pyIMSRG.so
+    )"
+  )
 
 # Install the header files
 file(GLOB HEADERS *.hh)
-#install(FILES ${HEADERS} 
+#install(FILES ${HEADERS}
 #        DESTINATION ${INSTDIR}/include
 #        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "

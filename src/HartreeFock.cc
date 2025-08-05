@@ -17,7 +17,7 @@
 //using namespace std;
 
 HartreeFock::HartreeFock(Operator& hbare)
-  : Hbare(hbare), modelspace(hbare.GetModelSpace()), ms_for_output_3N(hbare.GetModelSpace()), 
+  : Hbare(hbare), modelspace(hbare.GetModelSpace()), ms_for_output_3N(hbare.GetModelSpace()),
     KE(Hbare.OneBody), energies(Hbare.OneBody.diag()),
     tolerance(1e-8), convergence_ediff(7,0), convergence_EHF(7,0), freeze_occupations(true),discard_NO2B_from_3N(false)
 {
@@ -1081,7 +1081,7 @@ Operator HartreeFock::GetNormalOrderedH(int particle_rank)
    double start_time = omp_get_wtime();
 
    // First, check if we need to update the occupation numbers for the reference
-   
+
    if (not freeze_occupations)
    {
      UpdateReference();
@@ -1222,7 +1222,7 @@ void HartreeFock::PrintSPE()
 
 
 //**************************************************************************
-/// Print out the single particle orbits with their energies, as well as 
+/// Print out the single particle orbits with their energies, as well as
 /// the overlap with the input (oscillator) basis states
 //**************************************************************************
 void HartreeFock::PrintSPEandWF()
@@ -1482,7 +1482,7 @@ ThreeBodyME HartreeFock::GetTransformed3B( Operator& OpIn, arma::mat& C_3b )
         double jj = ojHO.j2 *0.5;
         double jk = okHO.j2 *0.5;
 
-        
+
         for ( size_t indxHF=0; indxHF<nkets_kept; indxHF++ )
         {
            size_t iket_HF = kets_kept[indxHF];
@@ -1597,7 +1597,7 @@ ThreeBodyME HartreeFock::GetTransformed3B( Operator& OpIn, arma::mat& C_3b )
 //        double VHO = GetTransformed3bme(  Jij,  Jlm, twoJ,  i,j,k,l,m,n);
         double VHF = GetTransformed3bme( OpIn, Jij,  Jlm, twoJ,  i,j,k,l,m,n);
 //        if (ich < 3)
-//        {        
+//        {
 //        double VHO = OpIn.ThreeBody.GetME_pn( Jij,  Jlm, twoJ,  i,j,k,l,m,n);
 //          std::cout << " ich = " << ich << " ibra,iket " << ibra << " " << iket << "   VHO VHF = " << VHO << " " << VHF
 //                    << "  ijklmn = " << i << " " << j << " " << k << " " << l << " " << m << " " << n << "   "

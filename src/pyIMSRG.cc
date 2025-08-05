@@ -413,14 +413,14 @@ PYBIND11_MODULE(pyIMSRG, m)
           //      .def("SetME_pn", &ThreeBodyME::SetME_pn)
           // .def("GetME_pn", &ThreeBodyME::GetME_pn)
             .def(
-                "GetME_pn", 
+                "GetME_pn",
                 [](ThreeBodyME &self, int Jab_in, int Jde_in, int twoJ, int a, int b, int c, int d, int e, int f) {
                     return self.GetME_pn(Jab_in, Jde_in, twoJ, a, b, c, d, e, f);
                 },
                 py::arg("Jab_in"), py::arg("Jde_in"), py::arg("twoJ"), py::arg("a"), py::arg("b"), py::arg("c"), py::arg("d"), py::arg("e"), py::arg("f")
             )
             .def(
-                "GetME_pn_tensor", 
+                "GetME_pn_tensor",
                 [](ThreeBodyME &self, int Jab_in, int j0, int Jde_in, int j1, int a, int b, int c, int d, int e, int f) {
                  return self.GetME_pn(Jab_in, j0, Jde_in, j1, a, b, c, d, e, f);
               },
@@ -451,6 +451,7 @@ PYBIND11_MODULE(pyIMSRG, m)
 
       py::class_<ReadWrite>(m, "ReadWrite")
           .def(py::init<>())
+          .def("Read_me1j", &ReadWrite::Read_me1j, py::arg("filename"), py::arg("op"), py::arg("emax"), py::arg("lmax"))
           .def("ReadTBME_Oslo", &ReadWrite::ReadTBME_Oslo)
           .def("ReadTBME_OakRidge", &ReadWrite::ReadTBME_OakRidge, py::arg("spname"), py::arg("tbmename"), py::arg("H"), py::arg("tbme_format") = "ascii")
           .def("ReadBareTBME_Jason", &ReadWrite::ReadBareTBME_Jason)
@@ -550,7 +551,7 @@ PYBIND11_MODULE(pyIMSRG, m)
                       { int a,b,c,d,e,f; HartreeFock::Vmon3UnHash(key,a,b,c,d,e,f); return std::make_tuple(a,b,c,d,e,f); })
           .def_readonly("EHF", &HartreeFock::EHF)
           .def_readonly("F", &HartreeFock::F)     // Fock matrix
-          .def_readonly("rho", &HartreeFock::rho) // density matrix
+          .def_readwrite("rho", &HartreeFock::rho) // density matrix
                                                   //      .def_readonly("C",&HartreeFock::C) // Unitary transformation
           .def_readwrite("C", &HartreeFock::C)    // Unitary transformation
           .def_readwrite("Vmon3_keys", &HartreeFock::Vmon3_keys)
@@ -564,6 +565,7 @@ PYBIND11_MODULE(pyIMSRG, m)
           .def("TransformHFToNATBasis", &HFMBPT::TransformHFToNATBasis)
           .def("GetNormalOrderedHNAT", &HFMBPT::GetNormalOrderedHNAT)
           .def("PrintSPEandWF", &HFMBPT::PrintSPEandWF)
+          .def("DiagonalizeRho", &HFMBPT::DiagonalizeRho)
           .def_readwrite("C_HO2NAT", &HFMBPT::C_HO2NAT) // Unitary transformation
           .def_readwrite("C_HF2NAT", &HFMBPT::C_HF2NAT) // Unitary transformation
           ;
@@ -638,7 +640,7 @@ PYBIND11_MODULE(pyIMSRG, m)
       .def("GetSchiff_s",&IMSRGSolverPV::GetSchiff_s)
       .def("GetSchiffpp_s",&IMSRGSolverPV::GetSchiffpp_s)
       .def("SetGeneratorPV",&IMSRGSolverPV::SetGeneratorPV)
-   ;      
+   ;
 
 
       py::class_<Generator>(m, "Generator")
@@ -820,10 +822,10 @@ PYBIND11_MODULE(pyIMSRG, m)
        ReferenceImplementations.def("comm132ss", &ReferenceImplementations::comm132ss);
        ReferenceImplementations.def("comm332_ppph_hhhpss", &ReferenceImplementations::comm332_ppph_hhhpss);
        ReferenceImplementations.def("comm332_pphhss", &ReferenceImplementations::comm332_pphhss);
-       ReferenceImplementations.def("comm233_pp_hhss", &ReferenceImplementations::comm233_pp_hhss); 
-       ReferenceImplementations.def("comm233_phss", &ReferenceImplementations::comm233_phss); 
-       ReferenceImplementations.def("comm333_ppp_hhhss", &ReferenceImplementations::comm333_ppp_hhhss); 
-       ReferenceImplementations.def("comm333_pph_hhpss", &ReferenceImplementations::comm333_pph_hhpss); 
+       ReferenceImplementations.def("comm233_pp_hhss", &ReferenceImplementations::comm233_pp_hhss);
+       ReferenceImplementations.def("comm233_phss", &ReferenceImplementations::comm233_phss);
+       ReferenceImplementations.def("comm333_ppp_hhhss", &ReferenceImplementations::comm333_ppp_hhhss);
+       ReferenceImplementations.def("comm333_pph_hhpss", &ReferenceImplementations::comm333_pph_hhpss);
 
        //
        ReferenceImplementations.def("diagram_CIa", &ReferenceImplementations::diagram_CIa);
@@ -849,13 +851,13 @@ PYBIND11_MODULE(pyIMSRG, m)
        ReferenceImplementations.def("comm231st", &ReferenceImplementations::comm231st);
        ReferenceImplementations.def("comm232st", &ReferenceImplementations::comm232st);
        ReferenceImplementations.def("comm133st", &ReferenceImplementations::comm133st);
-       ReferenceImplementations.def("comm132st", &ReferenceImplementations::comm132st);    
-       ReferenceImplementations.def("comm332_ppph_hhhpst", &ReferenceImplementations::comm332_ppph_hhhpst);  
-       ReferenceImplementations.def("comm332_pphhst", &ReferenceImplementations::comm332_pphhst);  
-       ReferenceImplementations.def("comm233_pp_hhst", &ReferenceImplementations::comm233_pp_hhst);  
-       ReferenceImplementations.def("comm233_phst", &ReferenceImplementations::comm233_phst);  
-       ReferenceImplementations.def("comm333_ppp_hhhst", &ReferenceImplementations::comm333_ppp_hhhst);  
-       ReferenceImplementations.def("comm333_pph_hhpst", &ReferenceImplementations::comm333_pph_hhpst); 
+       ReferenceImplementations.def("comm132st", &ReferenceImplementations::comm132st);
+       ReferenceImplementations.def("comm332_ppph_hhhpst", &ReferenceImplementations::comm332_ppph_hhhpst);
+       ReferenceImplementations.def("comm332_pphhst", &ReferenceImplementations::comm332_pphhst);
+       ReferenceImplementations.def("comm233_pp_hhst", &ReferenceImplementations::comm233_pp_hhst);
+       ReferenceImplementations.def("comm233_phst", &ReferenceImplementations::comm233_phst);
+       ReferenceImplementations.def("comm333_ppp_hhhst", &ReferenceImplementations::comm333_ppp_hhhst);
+       ReferenceImplementations.def("comm333_pph_hhpst", &ReferenceImplementations::comm333_pph_hhpst);
 
 
       py::class_<RPA>(m, "RPA")

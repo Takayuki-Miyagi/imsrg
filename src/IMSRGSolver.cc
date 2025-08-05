@@ -98,7 +98,7 @@ void IMSRGSolver::NewOmega()
 void IMSRGSolver::GatherOmega()
 {
   std::cout << "gathering Omega. " << std::endl;
-  if (Omega.size() < 2 ) 
+  if (Omega.size() < 2 )
   {
     auto &last = Omega.back();
     Omega.emplace_back(last);
@@ -1007,7 +1007,7 @@ Operator IMSRGSolver::Transform_Partial(Operator &OpIn, int n)
     //    OpOut = OpOut.BCH_Transform( Omega[i] );
 //    if (Commutator::use_imsrg3 and not Omega[i].ThreeBody.Is_PN_Mode() )
 //    {
-//       
+//
 //       Omega[i].ThreeBody.SetMode("pn");
 //    }
     OpOut = BCH::BCH_Transform(OpOut, Omega[i]);

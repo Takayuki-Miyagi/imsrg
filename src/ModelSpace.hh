@@ -178,7 +178,7 @@ struct TwoBodyChannel_base
    virtual bool CheckChannel_ket(Orbit* op, Orbit* oq) const;  // check if |pq> participates in this channel
 //   bool CheckChannel_ket(Orbit* op, Orbit* oq) const;  // check if |pq> participates in this channel
    bool CheckChannel_ket(Ket &ket) const {return CheckChannel_ket(ket.op,ket.oq);};  // check if |pq> participates in this channel
-   
+
 };
 
 
@@ -322,10 +322,10 @@ class ModelSpace
 
    std::set<std::array<int,2>> hole_quantum_numbers; // For checking if an orbit could mix with the hole orbits
 
-   std::vector<index_t> KetIndex_pp; 
+   std::vector<index_t> KetIndex_pp;
    std::vector<index_t> KetIndex_ph;
    std::vector<index_t> KetIndex_hh;
-   std::vector<index_t> KetIndex_cc; 
+   std::vector<index_t> KetIndex_cc;
    std::vector<index_t> KetIndex_vc;
    std::vector<index_t> KetIndex_qc;
    std::vector<index_t> KetIndex_vv;
@@ -376,8 +376,8 @@ class ModelSpace
 
 
    // Overloaded operators
-   ModelSpace operator=(const ModelSpace&); 
-   ModelSpace operator=(ModelSpace&&); 
+   ModelSpace operator=(const ModelSpace&);
+   ModelSpace operator=(ModelSpace&&);
 
    // Methods
 
@@ -418,8 +418,8 @@ class ModelSpace
    void SetOccNAT(int n, int l, int j2, int tz2, double occ_nat);
    void FindEFermi();
    // Setter/Getters
-   Orbit& GetOrbit(int i); 
-   const Orbit& GetOrbit(int i) const; 
+   Orbit& GetOrbit(int i);
+   const Orbit& GetOrbit(int i) const;
    Ket& GetKet(int i) const {return (Ket&) Kets[i];};
    Ket& GetKet(int p, int q) const {return (Ket&) Kets[Index2(p,q)];};
    Ket3& GetKet3(int i) const {return (Ket3&) Kets3[i];};
@@ -517,7 +517,7 @@ class ModelSpace
    void UnpackTwoBodyChannelIndex_CC( size_t ch, int& j, int& p, int& tz);
    int phase(int x) {return (x%2)==0 ? 1 : -1;};
 
-   
+
    size_t GetThreeBodyChannelIndex( int twoJ, int parity, int twoTz );
    std::array<size_t,2> CountThreeBodyStatesInsideCut();
 

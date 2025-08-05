@@ -548,9 +548,9 @@ Operator Operator::DoNormalOrdering2(int sign, std::set<index_t> occupied) const
                     ME *=2; // To account for both combinations < ah Jbra||Op|| bh Jket> and <ab Jket||Op|| bh Jbra>.  (Bug found by Antoine Belley, May 2025).
               }
               opNO.OneBody(a,b) += ME;
-              
+
               opNO.OneBody(b,a) = herm * modelspace->phase(ja - jb) * opNO.OneBody(a,b);
-              
+
             }
           }
         }
@@ -869,7 +869,7 @@ Operator Operator::DoIsospinAveraging() const
            double Vnppn = OpIso.TwoBody.GetTBME_J(tbc.J,tbc.J, an,bp,cp,dn);
            double VT1 = ( Vpppp + Vnnnn + 0.5*(Vpnpn + Vnpnp + Vpnnp + Vnppn) ) / 3;
            double VT0 = 0.5*(Vpnpn + Vnpnp - Vpnnp - Vnppn);
-         
+
            if ( not ( (ap==bp or cp==dp) and tbc.J%2==1 )  ) // Only set these if T=1 channel exists
            {
              double Norm_pp = 1.0;
@@ -882,7 +882,7 @@ Operator Operator::DoIsospinAveraging() const
            OpIso.TwoBody.SetTBME_J( tbc.J,tbc.J,  an,bp,cn,dp,  0.5*(VT1+VT0) ); // npnp
            OpIso.TwoBody.SetTBME_J( tbc.J,tbc.J,  an,bp,cp,dn,  0.5*(VT1-VT0) ); // nppn
            OpIso.TwoBody.SetTBME_J( tbc.J,tbc.J,  ap,bn,cn,dp,  0.5*(VT1-VT0) ); // pnnp
-           
+
         }
       }
    }

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 //    HFMBPT.hh, part of  imsrg++
 //    Copyright (C) 2019 Takayuki Miyagi
-//      -- code modified by Ragnar Stroberg 2019 
+//      -- code modified by Ragnar Stroberg 2019
 //
 //    This program is free software; you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by

@@ -140,7 +140,7 @@ namespace Commutator
     }
 
     for (std::string term : {
-            "comm332_pphhst", "comm332_ppph_hhhpst", "comm233_pp_hhst", 
+            "comm332_pphhst", "comm332_ppph_hhhpst", "comm233_pp_hhst",
             "comm233_phst", "comm333_ppp_hhhst", "comm333_pph_hhpst"})
     {
       comm_term_on[term] = false;
@@ -153,8 +153,8 @@ namespace Commutator
     use_imsrg3 = tf;
     for (std::string term : {
             "comm331st", "comm231st", "comm132st", "comm232st",
-            "comm133st", "comm223st", 
-            "comm332_pphhst", "comm332_ppph_hhhpst", "comm233_pp_hhst", 
+            "comm133st", "comm223st",
+            "comm332_pphhst", "comm332_ppph_hhhpst", "comm233_pp_hhst",
             "comm233_phst", "comm333_ppp_hhhst", "comm333_pph_hhpst"})
     {
       comm_term_on[term] = tf;
@@ -495,7 +495,7 @@ namespace Commutator
       Z.SetHermitian();
     else
       Z.SetNonHermitian();
-    
+
     if (Z.GetParticleRank() > 2)
     {
       Z.ThreeBody.SwitchToPN_and_discard();
@@ -1410,7 +1410,7 @@ namespace Commutator
     if (orientation == "normal")
     {
       TwoBody_CC_ph.zeros(2 * nph_bras, nKets_cc);
-    }  
+    }
     else if (orientation == "transpose")
     {
       TwoBody_CC_ph.zeros(nKets_cc, 2 * nph_bras);
@@ -1571,7 +1571,7 @@ namespace Commutator
   }
 
   void DoPandyaTransformation(const Operator &Z, std::deque<arma::mat> &TwoBody_CC_ph, std::string orientation = "normal")
-  { 
+  {
     // loop over cross-coupled channels
     int n_nonzero = Z.modelspace->SortedTwoBodyChannels_CC.size();
     // #pragma omp parallel for schedule(dynamic, 1) if (not Z.modelspace->scalar_transform_first_pass)

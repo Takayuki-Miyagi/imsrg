@@ -92,6 +92,9 @@ int main(int argc, char** argv)
   std::string scratch = parameters.s("scratch");
   std::string valence_file_format = parameters.s("valence_file_format");
   std::string occ_file = parameters.s("occ_file");
+  std::string density_file = parameters.s("density_file");
+  std::string me1j_file = parameters.s("me1j_file");
+  std::string me2jp_file = parameters.s("me2jp_file");
   std::string physical_system = parameters.s("physical_system");
   std::string denominator_partitioning = parameters.s("denominator_partitioning");
   std::string NAT_order = parameters.s("NAT_order");
@@ -177,7 +180,6 @@ int main(int argc, char** argv)
   using PhysConst::NEUTRON_RCH2;
   using PhysConst::DARWIN_FOLDY;
 
-
   // test 2bme file
   if (inputtbme != "none" and fmt2.find("oakridge")==std::string::npos and fmt2 != "schematic" )
   {
@@ -197,93 +199,11 @@ int main(int argc, char** argv)
     }
   }
 
-  // unpack the awkward input format for reading an operator from file, and put it into a struct.
-  // the format should look like OpName^j_t_p_r^/path/to/2bfile^/path/to/3bfile  if particle rank of Op is 2-body, then 3bfile is not needed.
-  std::vector< OpFromFile> opsfromfile_unpacked;
-  // If we're reading in other operators, make sure those are ok too
-  for (auto& tag : opsfromfile)
-  {
-     std::istringstream ss(tag);
-     std::string opname,qnumbers,f2name,f3name="";
-
-     OpFromFile opff;
-
-     getline(ss,opname,'^');
-     getline(ss,qnumbers,'^');
-     getline(ss,f2name,'^');
-     if ( not ss.eof() )  getline(ss,f3name,'^');
-     opff.opname = opname;
-     opff.file2name = f2name;
-     opff.file3name = f3name;
-
-      ss.str(qnumbers);
-      ss.clear();
-      std::string tmp;
-      getline(ss,tmp,'_');
-      std::istringstream(tmp) >> opff.j;
-      getline(ss,tmp,'_');
-      std::istringstream(tmp) >> opff.t;
-      getline(ss,tmp,'_');
-      std::istringstream(tmp) >> opff.p;
-      getline(ss,tmp,'_');
-      std::istringstream(tmp) >> opff.r;
-
-      std::cout << "Parsed tag. opname = " << opff.opname << "  " << opff.j << " " << opff.t << " " << opff.p << " " << opff.r << "   file2 = " << opff.file2name   << "    file3 = " << opff.file3name << std::endl;
-
-      // now make sure the files exist before we add them to the list.
-
-//     if( not std::ifstream(f2name).good() )
-     if( not std::ifstream(opff.file2name).good() )
-     {
-//       std::cout << "trouble reading " << f2name << " exiting. " << std::endl;
-       std::cout << "trouble reading " << opff.file2name << " exiting. " << std::endl;
-       return 1;
-     }
-
-     if ( opff.file3name != "") // is there a 3-body file too?
-     {
-//       getline(ss,f3name,'^');
-//       if( not std::ifstream(f3name).good() )
-       if( not std::ifstream(opff.file3name).good() )
-       {
-         std::cout << "trouble reading " << opff.file3name << " exiting. " << std::endl;
-//         std::cout << "trouble reading " << f3name << " exiting. " << std::endl;
-         return 1;
-       }
-     }
-     // if the files look good, then add it to the list
-     opsfromfile_unpacked.push_back( opff );
-  }
-
-
 
   ReadWrite rw;
   rw.SetLECs_preset(LECs);
   rw.SetScratchDir(scratch);
   rw.Set3NFormat( fmt3 );
-
-
-
-  // deal with some short-hand method names
-  if (method == "NSmagnus") // "No split" magnus
-  {
-    omega_norm_max=50000;
-    method = "magnus";
-  }
-  if (method.find("brueckner") != std::string::npos)
-  {
-    if (method=="brueckner2") brueckner_restart=true;
-    if (method=="brueckner1step")
-    {
-       nsteps = 1;
-       core_generator = valence_generator;
-    }
-    use_brueckner_bch = true;
-    omega_norm_max=500;
-    method = "magnus";
-  }
-
-
 
   // Test whether the scratch directory exists and we can write to it.
   // This is necessary because otherwise you get garbage for transformed operators and it's
@@ -332,28 +252,11 @@ int main(int argc, char** argv)
 
   ModelSpace modelspace = ( reference=="default" ? ModelSpace(eMax,valence_space) : ModelSpace(eMax,reference,valence_space) );
 
-//  std::cout << __LINE__ << "  constructed modelspace " << std::endl;
   modelspace.SetE3max(E3max);
   modelspace.SetLmax(lmax);
-//  std::cout << __LINE__ << "  done setting E3max and lmax " << std::endl;
   modelspace.SetdE3max(dE3max);
   modelspace.SetOccNat3Cut(OccNat3Cut);
 
-
-  if (emax_unocc>0)
-  {
-    modelspace.SetEmaxUnocc(emax_unocc);
-  }
-
-  if (physical_system == "atomic")
-  {
-    modelspace.InitSingleSpecies(eMax, reference, valence_space);
-  }
-
-  if (occ_file != "none" and occ_file != "" )
-  {
-    modelspace.Init_occ_from_file(eMax,valence_space,occ_file);
-  }
 
 
   if (nsteps < 0) // default to 1 step for single ref, 2 steps for valence decoupling
@@ -366,105 +269,15 @@ int main(int argc, char** argv)
   if (lmax3>0)
      modelspace.SetLmax3(lmax3);
 
-
-
-// For both dagger operators and single particle wave functions, it's convenient to
-// just get every orbit in the valence space. So if SPWF="valence" ,  we append all valence orbits
-  if ( std::find( spwf.begin(), spwf.end(), "valence" ) != spwf.end() )
-  {
-    // this erase/remove idiom is needed because remove just shuffles things around rather than actually removing it.
-    spwf.erase( std::remove( spwf.begin(), spwf.end(), "valence" ), std::end(spwf) );
-    for ( auto v : modelspace.valence )
-    {
-      spwf.push_back( modelspace.Index2String(v) );
-    }
-  }
-
-  if ( std::find( opnames.begin(), opnames.end(), "rhop_all") != opnames.end() )
-  {
-    opnames.erase( std::remove( opnames.begin(), opnames.end(), "rhop_all"), std::end(opnames) );
-    for ( double r=0.0; r<=10.0; r+=0.2 )
-    {
-       std::ostringstream opn;
-       opn << "rhop_" << r;
-       opnames.push_back( opn.str() );
-    }
-  }
-
-  if ( std::find( opnames.begin(), opnames.end(), "rhon_all") != opnames.end() )
-  {
-    opnames.erase( std::remove( opnames.begin(), opnames.end(), "rhon_all"), std::end(opnames) );
-    for ( double r=0.0; r<=10.0; r+=0.2 )
-    {
-       std::ostringstream opn;
-       opn << "rhon_" << r;
-       opnames.push_back( opn.str() );
-    }
-  }
-
-  if ( std::find( opnames.begin(), opnames.end(), "DaggerHF_valence") != opnames.end() )
-  {
-    opnames.erase( std::remove( opnames.begin(), opnames.end(), "DaggerHF_valence"), std::end(opnames) );
-    for ( auto v : modelspace.valence )
-    {
-      opnames.push_back( "DaggerHF_"+modelspace.Index2String(v) );
-    }
-    std::cout << "I found DaggerHF_valence, so I'm changing the opnames list to :" << std::endl;
-    for ( auto opn : opnames ) std::cout << opn << " ,  ";
-    std::cout << std::endl;
-  }
-
-  if ( std::find( opnames.begin(), opnames.end(), "DaggerAlln_valence") != opnames.end() )
-  {
-    opnames.erase( std::remove( opnames.begin(), opnames.end(), "DaggerAlln_valence"), std::end(opnames) );
-    for ( auto v : modelspace.valence )
-    {
-      opnames.push_back( "DaggerAlln_"+modelspace.Index2String(v) );
-    }
-    std::cout << "I found DaggerAlln_valence, so I'm changing the opnames list to :" << std::endl;
-    for ( auto opn : opnames ) std::cout << opn << " ,  ";
-    std::cout << std::endl;
-  }
-
-
-//  std::cout << "Making the Hamiltonian..." << std::endl;
   int particle_rank = input3bme=="none" ? 2 : 3;
   Operator Hbare = Operator(modelspace,0,0,0,particle_rank);
   Hbare.SetHermitian();
-
-
-  BCH::SetUseGooseTank(goose_tank);
-  Commutator::SetThreebodyThreshold(threebody_threshold);
-
   std::cout << "Reading interactions..." << std::endl;
 
 
   if (inputtbme != "none")
   {
-    if (fmt2 == "me2j")
-      rw.ReadBareTBME_Darmstadt(inputtbme, Hbare,file2e1max,file2e2max,file2lmax);
-    else if (fmt2 == "navratil" or fmt2 == "Navratil")
-      rw.ReadBareTBME_Navratil(inputtbme, Hbare);
-    else if (fmt2 == "oslo" )
-      rw.ReadTBME_Oslo(inputtbme, Hbare);
-    else if (fmt2.find("oakridge") != std::string::npos )
-    { // input format should be: singleparticle.dat,vnn.dat
-      size_t comma_pos = inputtbme.find_first_of(",");
-      if ( fmt2.find("bin") != std::string::npos )
-        rw.ReadTBME_OakRidge( inputtbme.substr(0,comma_pos),  inputtbme.substr( comma_pos+1 ), Hbare, "binary");
-      else
-        rw.ReadTBME_OakRidge( inputtbme.substr(0,comma_pos),  inputtbme.substr( comma_pos+1 ), Hbare, "ascii");
-    }
-    else if (fmt2 == "takayuki" )
-      rw.ReadTwoBody_Takayuki( inputtbme, Hbare);
-    else if (fmt2 == "nushellx" )
-      rw.ReadNuShellX_int( Hbare, inputtbme );
-    else if (fmt2 == "schematic" )
-    {
-      std::cout << "using schematic potential " << inputtbme << std::endl;
-      if ( inputtbme == "Minnesota") Hbare += imsrg_util::MinnesotaPotential( modelspace );
-    }
-
+    rw.ReadBareTBME_Darmstadt(inputtbme, Hbare,file2e1max,file2e2max,file2lmax);
     std::cout << "done reading 2N" << std::endl;
   }
 
@@ -477,17 +290,9 @@ int main(int argc, char** argv)
     }
     if(input3bme_type == "no2b")
     {
-
       Hbare.ThreeBody.SetMode("no2b");
       if (no2b_precision == "half")  Hbare.ThreeBody.SetMode("no2bhalf");
 
-      Hbare.ThreeBody.ReadFile( {input3bme}, {file3e1max, file3e2max, file3e3max, file3e1max} );
-      rw.File3N = input3bme;
-
-    }
-    else if(input3bme_type == "mono")
-    {
-      Hbare.ThreeBody.SetMode("mono");
       Hbare.ThreeBody.ReadFile( {input3bme}, {file3e1max, file3e2max, file3e3max, file3e1max} );
       rw.File3N = input3bme;
     }
@@ -499,51 +304,7 @@ int main(int argc, char** argv)
     Hbare.ThreeBody.TransformToPN();
   }
 
-
-
-
-  if (inputtbme == "none" and physical_system == "atomic")
-  {
-
-    using PhysConst::M_ELECTRON;
-    using PhysConst::M_NUCLEON;
-    int Z = (atomicZ>=0) ?  atomicZ : modelspace.GetTargetZ() ;
-    Hbare -= Z*imsrg_util::VCentralCoulomb_Op(modelspace, lmax) * sqrt((M_ELECTRON*1e6)/M_NUCLEON ) ;
-    Hbare += imsrg_util::VCoulomb_Op(modelspace, lmax) * sqrt((M_ELECTRON*1e6)/M_NUCLEON ) ;  // convert oscillator length from fm with nucleon mass to nm with electon mass (in eV).
-    Hbare += imsrg_util::KineticEnergy_Op(modelspace); // Don't need to rescale this, because it's related to the oscillator frequency, which we input.
-    Hbare /= PhysConst::HARTREE; // Convert to Hartree
-  }
-
-  if (fmt2 != "nushellx" and physical_system != "atomic" and hw_trap < 0)  // Don't need to add kinetic energy if we read a shell model interaction
-  {
-    Hbare += imsrg_util::Trel_Op(modelspace);
-    if (Hbare.OneBody.has_nan())
-    {
-       std::cout << "  Looks like the Trel op is hosed from the get go. Dying." << std::endl;
-       std::exit(EXIT_FAILURE);
-    }
-  }
-
-  // Add an external harmonic trap
-  if ( hw_trap > 0 )
-  {
-    Hbare += 0.5 * (PhysConst::M_NUCLEON * hw_trap * hw_trap)/(PhysConst::HBARC*PhysConst::HBARC) * imsrg_util::RSquaredOp(modelspace);
-    Hbare += imsrg_util::KineticEnergy_Op(modelspace); // use lab-frame kinetic energy
-  }
-
-  // correction to kinetic energy because M_proton != M_neutron
-  if ( nucleon_mass_correction)
-  {
-    Hbare += imsrg_util::Trel_Masscorrection_Op(modelspace);
-  }
-
-  if ( relativistic_correction)
-  {
-    Hbare += imsrg_util::KineticEnergy_RelativisticCorr(modelspace);
-  }
-
-
-
+  Hbare += imsrg_util::Trel_Op(modelspace);
 
   // Add a Lawson center of mass term. If hwBetaCM is specified, use that frequency, otherwise use the basis frequency
   if (std::abs(BetaCM)>1e-6)
@@ -554,201 +315,94 @@ int main(int argc, char** argv)
     Hbare += BetaCM * imsrg_util::OperatorFromString( modelspace, hcm_opname.str());
   }
 
-
-
-
   std::cout << "Creating HF" << std::endl;
   HFMBPT hf(Hbare); // HFMBPT inherits from HartreeFock, so this works for HF and NAT bases.
+  Operator rho = Operator(modelspace,0,0,0,1);
+  Operator& HNO = Hbare; // The reference & means we overwrite Hbare and save some memory
+  int hno_particle_rank = 2;
 
-  if (not freeze_occupations )  hf.UnFreezeOccupations();
-  if ( discard_no2b_from_3n) hf.DiscardNO2Bfrom3N();
-  std::cout << "Solving" << std::endl;
-
-  if (basis!="oscillator")
-  {
-    hf.Solve();
+  rw.Read_me1j(density_file, rho, eMax, eMax);
+  if(me1j_file != "none" and me2jp_file != "none"){
+    HNO.Erase();
+    rw.Read_me1j(me1j_file, HNO, eMax, eMax);
+    rw.Read_me2jp(me2jp_file, HNO, eMax, 2*eMax, eMax);
+    //std::map<std::array<int, 4>,double> hole_map;
+    //for ( auto i : modelspace.all_orbits) {
+    //  Orbit& oi = modelspace.GetOrbit(i);
+    //  hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = rho.OneBody(i);
+    //}
+    //modelspace.Init(eMax, hole_map, valence_space);
   }
-  if ( (basis == "NAT") or (OccNat3Cut>0) ) // we want to use natural orbitals
-  {
+  else {
+    arma::mat C;
+    arma::vec Occ;
+    bool success = false;
+    success = arma::eig_sym(Occ, C, rho.OneBody); // eigenvalues of rho (i.e. occupations) are in ascending order
+    Occ = arma::reverse(Occ);
+    C = arma::reverse(C, 1);
+    std::map<std::array<int, 4>,double> hole_map;
+    for ( auto i : modelspace.all_orbits) {
+      Orbit& oi = modelspace.GetOrbit(i);
+      hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = Occ(i);
+    }
+    modelspace.Init(eMax, hole_map, valence_space);
+    hf.Occ = Occ;
 
-    // for backwards compatibility: order_NAT_by_energy overrides NAT_order
-    if (order_NAT_by_energy) NAT_order = "energy";
-    hf.UseNATOccupations( use_NAT_occupations );
-    hf.OrderNATBy( NAT_order );
-    hf.GetNaturalOrbitals();
+    hf.rho = rho.OneBody;
+    hf.BuildMonopoleV();
+    if(Hbare.GetParticleRank()>2) hf.BuildMonopoleV3();
+
+    hf.DiagonalizeRho();
+    if(NAT_order=="close_to_1"){
+      std::cout << "Ordering NAT orbits so that the transformation close to 1..." << std::endl;
+      for (auto& it : Hbare.OneBodyChannels){
+        arma::uvec orbvec(std::vector<index_t>(it.second.begin(),it.second.end()));
+        arma::mat CNAT_chan = hf.C_HF2NAT.submat(orbvec, orbvec);
+        arma::mat tmp = hf.C_HF2NAT.submat(orbvec, orbvec);
+        arma::vec occ = hf.Occ.elem(orbvec);
+        arma::vec tmp_occ = hf.Occ.elem(orbvec);
+        for(int i=0; i<CNAT_chan.n_rows; i++){
+          arma::rowvec v = CNAT_chan.row(i);
+          arma::uword idx = arma::index_max(arma::abs(v));
+          tmp.col(i) = CNAT_chan.col(idx);
+          tmp_occ(i) = occ(idx);
+        }
+        hf.C_HF2NAT.submat(orbvec, orbvec) = tmp;
+        hf.Occ.elem(orbvec) = tmp_occ;
+      }
+    }
+    hf.C_HO2NAT = hf.C_HF2NAT;
+    HNO = hf.GetNormalOrderedH(hf.C_HO2NAT, hno_particle_rank);
   }
-
-  if (basis=="HF" or basis=="NAT")
+  for (auto& it : HNO.OneBodyChannels){
+    arma::uvec orbvec(std::vector<index_t>(it.second.begin(),it.second.end()));
+    std::cout << "F: " << std::endl;
+    arma::mat tmp = HNO.OneBody.submat(orbvec, orbvec);
+    std::cout << tmp << std::endl;
+    std::cout << "rho: " << std::endl;
+    tmp = rho.OneBody.submat(orbvec, orbvec);
+    std::cout << tmp << std::endl;
+  }
+  std::cout << basis << " Single particle energies and wave functions:" << std::endl;
+  std::cout << std::fixed << std::setw(3) << "i" << ": " << std::setw(3) << "n" << " " << std::setw(3) << "l" << " "
+       << std::setw(3) << "2j" << " " << std::setw(3) << "2tz" << "   " << std::setw(12) << "SPE" << " " << std::setw(12) << "occ."
+       << " " << std::setw(12) << "occNAT" << "   |   " << " overlaps" << std::endl;
+  for ( auto i : modelspace.all_orbits )
   {
-    std::cout << basis << " Single particle energies and wave functions:" << std::endl;
-    hf.PrintSPEandWF();
+    Orbit& oi = modelspace.GetOrbit(i);
+    std::cout << std::fixed << std::setw(3) << i << ": " << std::setw(3) << oi.n << " " << std::setw(3) << oi.l << " "
+         << std::setw(3) << oi.j2 << " " << std::setw(3) << oi.tz2 << "   " << std::setw(12) << std::setprecision(6) << HNO.OneBody(i,i) << " " << std::setw(12) << oi.occ << " " << std::setw(12) << oi.occ_nat << "   | ";
+    for (int j : Hbare.OneBodyChannels.at({oi.l,oi.j2,oi.tz2}) ) // j runs over HO states
+    {
+      std::cout << std::setw(9) << hf.C_HO2NAT(j,i) << "  ";  // C is <HO|NAT>
+    }
     std::cout << std::endl;
   }
-  // If the length of spwf is zero, nothing happens
-  imsrg_util::WriteSPWaveFunctions( spwf, hf, intfile);
-
-  if ( method == "HF" ) // if all we wanted was a HF calculation, we're done.
-  {
-    Hbare.PrintTimes();
-    return 0;
-  }
-
-  /// ALL DONE SETTING UP THE SINGLE-PARTICLE BASIS.
-  /// Next, we transform our operators to this new basis. Here, we can apply some further cuts
-  /// and make the NO2B approximation, if we desire.
-
-
-  /// Define the model space we'll use for the further steps. By default, it will be the same we were already using.
-  ModelSpace modelspace_imsrg = modelspace;
-  if ( (eMax_imsrg != -1) or (e2Max_imsrg != -1) or (e3Max_imsrg != -1) or (eMax_3body_imsrg != -1))
-  {
-
-     if ( eMax_imsrg==-1 ) eMax_imsrg = eMax;
-     if ( e2Max_imsrg==-1 ) e2Max_imsrg = 2*eMax_imsrg;
-     if ( e3Max_imsrg==-1 ) e3Max_imsrg = std::min( E3max, 3*eMax_imsrg);
-     if ( eMax_3body_imsrg==-1) eMax_3body_imsrg = eMax_imsrg;
-
-//     ModelSpace modelspace_imsrg = modelspace;
-     std::cout << "Truncating modelspace for IMSRG calculation: emax e2max e3max  ->  " << eMax_imsrg << " " << e2Max_imsrg << " " << e3Max_imsrg << std::endl;
-     modelspace_imsrg.SetEmax( eMax_imsrg);
-     modelspace_imsrg.SetE2max( e2Max_imsrg);
-     modelspace_imsrg.SetE3max( e3Max_imsrg);
-     modelspace_imsrg.SetEmax3Body( eMax_3body_imsrg );
-     modelspace_imsrg.Init( eMax_imsrg, reference, valence_space);
-   //  if (emax_unocc>0) modelspace_imsrg.SetEmaxUnocc(emax_unocc);
-     if (physical_system == "atomic") modelspace_imsrg.InitSingleSpecies(eMax_imsrg, reference, valence_space);
-     if (occ_file != "none" and occ_file != "" ) modelspace_imsrg.Init_occ_from_file(eMax_imsrg,valence_space,occ_file);
-//     if (physical_system == "atomic") modelspace_imsrg.InitSingleSpecies(eMax_imsrg, eMax_imsrg, e3Max_imsrg, reference, valence_space);
-//     if (occ_file != "none" and occ_file != "" ) modelspace_imsrg.Init_occ_from_file(eMax_imsrg,e2Max_imsrg,e3Max_imsrg,valence_space,occ_file);
-
-     // If the occupations in modelspace were different from the naive filling, we want to keep those.
-     std::map<index_t,double> hole_map;
-     for ( auto& i_old : modelspace.holes)
-     {
-        Orbit& oi_old = modelspace.GetOrbit(i_old);
-        index_t i_new = modelspace_imsrg.GetOrbitIndex( oi_old.n, oi_old.l, oi_old.j2, oi_old.tz2 );
-//        Orbit& oi_new = modelspace.GetOrbit(i_new); // this isn't used.
-        if ( oi_old.occ < 1e-8 and oi_old.cvq!=1 )  // a hole with such a small occupation is hopefully in the valence space.
-        {
-           std::cout << "WARNING. " << __FILE__ << "  line  " << __LINE__ << "  orbit " << i_old << "  has occupation " << oi_old.occ << "  but cvq = " << oi_old.cvq << std::endl;
-        }
-        else
-        {
-           hole_map[i_new] = oi_old.occ;
-        }
-     }
-
-     modelspace_imsrg.SetReference( hole_map );
-  }
-
-  // This new modelspace will be what we use for transforming the 3N to the HF basis.
-  // For the 2N, we'll just do the transformation and then truncate.
-  hf.SetModelspaceForOutput3N(modelspace_imsrg);
-
-
-
-  // decide what to keep after normal ordering
-  int hno_particle_rank = 2;
-  if ((IMSRG3) and (Hbare.ThreeBodyNorm() > 1e-5))  hno_particle_rank = 3;
-  if (discard_residual_input3N) hno_particle_rank = 2;
-  if (input3bme_type=="no2b") hno_particle_rank = 2;
-
-  Operator& HNO = Hbare; // The reference & means we overwrite Hbare and save some memory
-  if (basis == "HF" and method !="HF")
-  {
-    HNO = hf.GetNormalOrderedH( hno_particle_rank );
-//    if ((IMSRG3 or perturbative_triples) and OccNat3Cut>0 ) hf.GetNaturalOrbitals();
-  }
-  else if (basis == "NAT") // we want to use the natural orbital basis
-  {
-    // for backwards compatibility: order_NAT_by_energy overrides NAT_order
-//    if (order_NAT_by_energy) NAT_order = "energy";
-
-//    hf.UseNATOccupations( use_NAT_occupations );
-//    hf.OrderNATBy( NAT_order );
-
-//  GetNaturalOrbitals() calls GetDensityMatrix(), which computes the 1b density matrix up to MBPT2
-//  using the NO2B Hamiltonian in the HF basis, obtained with GetNormalOrderedH().
-//  Then it calls DiagonalizeRho() which diagonalizes the density matrix, yielding the natural orbital basis.
-//    hf.GetNaturalOrbitals();
-    HNO = hf.GetNormalOrderedHNAT( hno_particle_rank );
-
-//  SRS: I'm commenting this out because this is not reasonably-expected default behavior
-//    // For now, even if we use the NAT occupations, we switch back to naive occupations after the normal ordering
-//    // This should be investigated in more detail.
-//    if (use_NAT_occupations)
-//    {
-//      hf.FillLowestOrbits();
-//      std::cout << "Undoing NO wrt A=" << modelspace.GetAref() << " Z=" << modelspace.GetZref() << std::endl;
-//      HNO = HNO.UndoNormalOrdering();
-//      hf.UpdateReference();
-//      modelspace.SetReference(modelspace.core); // change the reference
-//      std::cout << "Doing NO wrt A=" << modelspace.GetAref() << " Z=" << modelspace.GetZref() << std::endl;
-//      HNO = HNO.DoNormalOrdering();
-//    }
-
-  }
-  else if (basis == "oscillator")
-  {
-    HNO = Hbare.DoNormalOrdering();
-  }
-
-  if (perturbative_triples)
-  {
-//    modelspace.SetdE3max(dE3max);
-//    modelspace.SetOccNat3Cut(OccNat3Cut);
-    std::array<size_t,2> nstates = modelspace.CountThreeBodyStatesInsideCut();
-    std::cout << "We will compute perturbative triples corrections" << std::endl;
-    std::cout << "Truncations: dE3max = " << dE3max << "   OccNat3Cut = " << std::scientific << OccNat3Cut << "  ->  number of 3-body states kept:  " << nstates[0] << " out of " << nstates[1] << std::endl << std::fixed;
-  }
-
-  if (IMSRG3  )
-  {
-//    modelspace.SetdE3max(dE3max);
-//    modelspace.SetOccNat3Cut(OccNat3Cut);
-    std::array<size_t,2> nstates = modelspace.CountThreeBodyStatesInsideCut();
-    std::cout << "You have chosen IMSRG3. good luck..." << std::endl;
-    std::cout << "Truncations: dE3max = " << dE3max << "   OccNat3Cut = " << std::scientific << OccNat3Cut << "  ->  number of 3-body states kept:  " << nstates[0] << " out of " << nstates[1] << std::endl;
-
-    if (hno_particle_rank<3 ) // if we're doing IMSRG3, we need a 3 body operator
-    {
-//      Operator H3(modelspace,0,0,0,3);
-//      std::cout << "Constructed H3" << std::endl;
-//      H3.ZeroBody = HNO.ZeroBody;
-//      H3.OneBody = HNO.OneBody;
-//      H3.TwoBody = HNO.TwoBody;
-//      HNO = H3;
-//      std::cout << "Replacing HNO" << std::endl;
-//      std::cout << "Hbare Three Body Norm is " << Hbare.ThreeBodyNorm() << std::endl;
-        HNO.ThreeBody.SetMode("pn");
-        HNO.SetParticleRank(3);
-      // HNO.ThreeBody.SwitchToPN_and_discard();
-    }
-  }
-
-
-
-
-
+  std::cout << std::endl;
 
   HNO -= BetaCM * 1.5*hwBetaCM; // This is just the zero-body piece. The other stuff was added earlier.
   std::cout << "Hbare 0b = " << std::setprecision(8) << HNO.ZeroBody << std::endl;
-
-  if (method != "HF")
-  {
-    std::cout << "Perturbative estimates of gs energy:" << std::endl;
-    double EMP2 = HNO.GetMP2_Energy();
-    double EMP2_3B = HNO.GetMP2_3BEnergy();
-    std::cout << "EMP2 = " << EMP2 << std::endl;
-    std::cout << "EMP2_3B = " << EMP2_3B << std::endl;
-    std::cout << "To 2nd order, E = " << HNO.ZeroBody + EMP2 + EMP2_3B << std::endl;
-    std::array<double,3> Emp_3 = HNO.GetMP3_Energy();
-    double EMP3 = Emp_3[0]+Emp_3[1]+Emp_3[2];
-    std::cout << "E3_pp = " << Emp_3[0] << "  E3_hh = " << Emp_3[1] << " E3_ph = " << Emp_3[2] << "   EMP3 = " << EMP3 << std::endl;
-    std::cout << "To 3rd order, E = " << HNO.ZeroBody + EMP2 + EMP3 + EMP2_3B << std::endl;
-  }
-
-
+  ModelSpace modelspace_imsrg = modelspace;
 
   std::cout << "done with perterbative stuff, method = " << method << std::endl;
   // Calculate all the desired operators. If we're using magnus, we'll do this after the flow is over
@@ -777,30 +431,6 @@ int main(int argc, char** argv)
     {
       ops.emplace_back( imsrg_util::RPA_resummed_1b( imsrg_util::OperatorFromString(modelspace,opnamerpa)   , HNO, "RPA" ) );
       opnames.push_back( opnamerpa+"RPA" );
-    }
-
-
-
-    for ( auto& opff : opsfromfile_unpacked)
-    {
-      Operator op(modelspace, opff.j, opff.t, opff.p, opff.r );
-      if (opff.r>2) op.ThreeBody.Allocate();
-      if ( input_op_fmt == "navratil" )
-      {
-        rw.Read2bCurrent_Navratil( opff.file2name, op );
-      }
-      else if ( input_op_fmt == "miyagi" )
-      {
-        if (opff.file2name != "")
-        {
-            Operator optmp = rw.ReadOperator2b_Miyagi( opff.file2name, modelspace );
-            op.OneBody = optmp.OneBody;
-            op.TwoBody = optmp.TwoBody;
-        }
-        if ( opff.r>2 and opff.file3name != "")  rw.Read_Darmstadt_3body( opff.file3name, op,  file3e1max,file3e2max,file3e3max);
-      }
-      ops.push_back( op );
-      opnames.push_back( opff.opname );
     }
 
 
@@ -1230,6 +860,16 @@ int main(int argc, char** argv)
   ModelSpace ms2(modelspace_imsrg);
   ms2.SetReference(ms2.core); // change the reference
   bool renormal_order = false;
+  Operator Hs = imsrgsolver.GetH_s();
+
+  Hs = Hs.UndoNormalOrdering();
+  //hf.C_HO2NAT = hf.C_HO2NAT.t(); // NAT --> HO
+  //Hs = hf.TransformHOToNATBasis(Hs);
+  rw.Write_me1j(me1j_file + ".out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetLmax());
+  rw.Write_me2jp(me2jp_file + ".out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetE2max(), Hs.modelspace->GetLmax());
+  //hf.C_HO2NAT = hf.C_HO2NAT.t(); // HO --> NAT
+
+
 //  if (modelspace.valence.size() > 0 )
   if (modelspace_imsrg.valence.size() > 0 )
 //  if (modelspace.valence.size() > 0 or basis=="NAT")
@@ -1284,6 +924,7 @@ int main(int argc, char** argv)
     Hs.SetModelSpace(ms2);
     std::cout << "Doing NO wrt A=" << ms2.GetAref() << " Z=" << ms2.GetZref() << "  norbits = " << ms2.GetNumberOrbits() << std::endl;
     Hs = Hs.DoNormalOrdering();
+
 
     imsrgsolver.FlowingOps[0] = Hs;
 
@@ -1403,328 +1044,6 @@ int main(int argc, char** argv)
 
 
 
-/////////////////////
-/// Transform operators and write them
-
-
-
-  if (method == "magnus")
-  {
-
-    /// if method is magnus, we didn't do this already. So we need to unpack any operators from file.
-
-    for ( auto& opff : opsfromfile_unpacked)
-    {
-      opnames.push_back( opff.opname + "_FROMFILE");
-    }
-
-    int count_from_file =0;
-
-
-    if (opnames.size()>0) std::cout << "transforming operators" << std::endl;
-
-    for (size_t i=0;i<opnames.size();++i)
-    {
-      auto opname = opnames[i];
-      std::cout << i << ": " << opname << " " << std::endl;
-
-      Operator op;
-
-      if ( opname.find("_FROMFILE") != std::string::npos)
-      {
-        OpFromFile& opff = opsfromfile_unpacked[count_from_file];
-         std::cout << "reading " << opff.opname << " with " << opff.j << " " << opff.t << " " << opff.p << " " << opff.r << "  from file " << opff.file2name << std::endl;
-        op = Operator(modelspace, opff.j, opff.t, opff.p, opff.r );
-        if (opff.r>2) op.ThreeBody.Allocate();
-        if ( input_op_fmt == "navratil" )
-        {
-          rw.Read2bCurrent_Navratil( opff.file2name, op );
-        }
-        else if ( input_op_fmt == "miyagi" )
-        {
-          if (opff.file2name != "")
-          {
-              Operator optmp = rw.ReadOperator2b_Miyagi( opff.file2name, modelspace );
-              op.OneBody = optmp.OneBody;
-              op.TwoBody = optmp.TwoBody;
-          }
-          if ( opff.r>2 and opff.file3name != "")  rw.Read_Darmstadt_3body( opff.file3name, op,  file3e1max,file3e2max,file3e3max);
-        }
-        count_from_file++;
-        opname = opff.opname; // Get rid of the _FROMFILE bit.
-      }
-      else
-      {
-         op = imsrg_util::OperatorFromString( modelspace, opname );
-      }
-//      Operator op = imsrg_util::OperatorFromString( modelspace, opname );
-
-      if ( op.GetJRank()==0 and ( op.GetTRank()!=0 or op.GetParity()!=0 ) )
-      {
-         std::cout << "Before doing HF, making " << opname << "  not reduced" << std::endl;
-         op.MakeNotReduced();
-      }
-
-      // Added by Antoine Belley
-      if (write_HO_ops)
-      {
-        std::cout << "writing HO tensor files " << std::endl;
-        if (valence_file_format == "tokyo")
-        {
-          rw.WriteTensorTokyo(intfile+opnames[i]+"_HO_2b.snt",op);
-        }
-        else
-        {
-          rw.WriteTensorOneBody(intfile+opnames[i]+"_HO_1b.op",op,opnames[i]);
-          rw.WriteTensorTwoBody(intfile+opnames[i]+"_HO_2b.op",op,opnames[i]);
-        }
-      }
-
-
-
-
-
-      if ( basis == "oscillator" or opname=="OccRef")
-      {
-        op = op.DoNormalOrdering();
-      }
-      else if ( basis == "HF")
-      {
-        op = hf.TransformToHFBasis(op).DoNormalOrdering();
-      }
-      else if ( basis == "NAT")
-      {
-        op = hf.TransformHOToNATBasis(op).DoNormalOrdering();
-      }
-
-
-      std::cout << "   HF: " << op.ZeroBody << std::endl;
-
-      if ( (eMax_imsrg != -1) or (e2Max_imsrg != -1) or (e3Max_imsrg) != -1)
-      {
-//     ModelSpace modelspace_imsrg = modelspace;
-        std::cout << "Truncating modelspace for IMSRG calculation: emax e2max e3max  ->  " << eMax_imsrg << " " << e2Max_imsrg << " " << e3Max_imsrg << std::endl;
-        op = op.Truncate(modelspace_imsrg);
-      }
-
-
-      // Added by Antoine Belley
-      if (write_HF_ops)
-      {
-        std::cout << "writing HF tensor files " << std::endl;
-        if (valence_file_format == "tokyo")
-        {
-          rw.WriteTensorTokyo(intfile+opnames[i]+"_HF_2b.snt",op);
-        }
-        else
-        {
-          rw.WriteTensorOneBody(intfile+opnames[i]+"_HF_1b.op",op,opnames[i]);
-          rw.WriteTensorTwoBody(intfile+opnames[i]+"_HF_2b.op",op,opnames[i]);
-        }
-      }
-
-
-
-
-      op = imsrgsolver.Transform(op);
-
-//      std::cout << "Before renormal ordering Op(5,4) is " << std::setprecision(10) << op.OneBody(5,4) << std::endl;
-      if (renormal_order)
-      {
-        if ( op.GetParticleRank()>2) op.SetParticleRank(2); // Discard the residual 3N because we don't want to deal with it in the valence calculation
-        op = op.UndoNormalOrdering();
-//        op.SetModelSpace(ms2);
-//        op = op.DoNormalOrdering();
-        op = op.DoNormalOrderingCore();
-      }
-//      std::cout << " (" << ops[i].ZeroBody << " ) " << std::endl;
-//      std::cout << "   IMSRG: " << op.ZeroBody << std::endl;
-//      rw.WriteOperatorHuman(ops[i],intfile+opnames[i]+"_step2.op");
-//      std::cout << "After renormal ordering Op(5,4) is " << std::setprecision(10) << op.OneBody(5,4) << std::endl;
-
-
-
-//    std::cout << "      " << op.GetJRank() << " " << op.GetTRank() << " " << op.GetParity() << "   " << op.GetNumberLegs() << std::endl;
-    if ( ((op.GetJRank()+op.GetTRank()+op.GetParity())<1) and (op.GetNumberLegs()%2==0) )
-    {
-       std::cout << "writing scalar files " << std::endl;
-      if (valence_file_format == "tokyo")
-      {
-        rw.WriteTokyo(op,intfile+"_"+opname+".snt", "op");
-      }
-      else
-      {
-        rw.WriteNuShellX_op(op,intfile+opname+".int");
-      }
-    }
-    else if ( op.GetNumberLegs()%2==1) // odd number of legs -> this is a dagger operator
-    {
-//      rw.WriteNuShellX_op(ops[i],intfile+opnames[i]+".int"); // do this for now. later make a *.dag format.
-      rw.WriteDaggerOperator( op, intfile+opname+".dag",opname);
-    }
-    else
-    {
-       std::cout << "writing tensor files " << std::endl;
-      if (valence_file_format == "tokyo")
-      {
-        if (op.GetJRank()==0 and (op.GetTRank()!=0 or op.GetParity()!=0) )
-        {
-           op.MakeReduced();
-        }
-
-        rw.WriteTensorTokyo(intfile+"_"+opname+".snt",op);
-      }
-      else
-      {
-        rw.WriteTensorOneBody(intfile+opname+"_1b.op",op,opname);
-        rw.WriteTensorTwoBody(intfile+opname+"_2b.op",op,opname);
-      }
-    }
-
-    }// for opnames
-
-  }// if method == "magnus"
-
-
-
-  if (method == "flow" or method == "flow_RK4" )
-  {
-    for (size_t i=0;i<ops.size();++i)
-    {
-      auto op = imsrgsolver.GetOperator(i+1);  // the zero-th operator is the Hamiltonian
-      auto opname = opnames[i];
-
-      if (renormal_order)
-      {
-        op = op.UndoNormalOrdering();
-        op.SetModelSpace(ms2);
-        op = op.DoNormalOrdering();
-      }
-//      std::cout << " (" << ops[i].ZeroBody << " ) " << std::endl;
-      std::cout << "   IMSRG: " << op.ZeroBody << std::endl;
-//      rw.WriteOperatorHuman(ops[i],intfile+opnames[i]+"_step2.op");
-
-
-
-      std::cout << "      " << op.GetJRank() << " " << op.GetTRank() << " " << op.GetParity() << "   " << op.GetNumberLegs() << std::endl;
-      if ( ((op.GetJRank()+op.GetTRank()+op.GetParity())<1) and (op.GetNumberLegs()%2==0) )
-      {
-         std::cout << "writing scalar files " << std::endl;
-        if (valence_file_format == "tokyo")
-        {
-          rw.WriteTokyo(op,intfile+"_"+opname+".snt", "op");
-        }
-        else
-        {
-          rw.WriteNuShellX_op(op,intfile+opname+".int");
-        }
-      }
-      else if ( op.GetNumberLegs()%2==1) // odd number of legs -> this is a dagger operator
-      {
-  //      rw.WriteNuShellX_op(ops[i],intfile+opnames[i]+".int"); // do this for now. later make a *.dag format.
-        rw.WriteDaggerOperator( op, intfile+opname+".dag",opname);
-      }
-      else
-      {
-         std::cout << "writing tensor files " << std::endl;
-        if (valence_file_format == "tokyo")
-        {
-          rw.WriteTensorTokyo(intfile+"_"+opname+".snt",op);
-        }
-        else
-        {
-          rw.WriteTensorOneBody(intfile+opname+"_1b.op",op,opname);
-          rw.WriteTensorTwoBody(intfile+opname+"_2b.op",op,opname);
-        }
-      }
-    }
-  }
-
-
-
-
-
-
-
-
-
-
-
-//  std::cout << "Made it here and write_omega is " << write_omega << std::endl;
-  if (write_omega)
-  {
-    std::string scratch = rw.GetScratchDir();
-    imsrgsolver.FlushOmegaToScratch();
-    for (int i=0; i < imsrgsolver.GetNOmegaWritten() ; i++)
-    {
-       std::ostringstream inputfile,outputfile;
-       inputfile << scratch << "/OMEGA_" << std::setw(6) << std::setfill('0') << getpid() << std::setw(3) << std::setfill('0') << i;
-       outputfile << intfile << "_Omega_" << i;
-       rw.CopyFile( inputfile.str(), outputfile.str() );
-    }
-//    rw.WriteOmega(intfile,scratch, imsrgsolver.n_omega_written);
-
-
-
-    std::ofstream file_occ;
-    std::ostringstream name_occ;
-    int wint = 4; int wdouble = 26; int pdouble = 16;
-    name_occ << intfile << "_occ.dat";
-    file_occ.open( name_occ.str(), std::ofstream::out);
-    for (auto i : modelspace.all_orbits)
-    {
-      Orbit& oi = modelspace.GetOrbit(i);
-      if ( std::abs(oi.occ)>1e-6 )
-      {
-        file_occ << std::setw(wint) << oi.n << std::setw(wint) << oi.l << std::setw(wint) << oi.j2 << std::setw(wint) << oi.tz2
-                 << std::setw(wdouble) << std::setiosflags(std::ios::fixed) << std::setprecision(pdouble) << std::scientific << oi.occ << std::endl;
-      }
-    }
-    file_occ.close();
-    if (basis == "NAT")
-    {
-      name_occ.str("");
-      name_occ << intfile << "_occ_nat.dat";
-      file_occ.open( name_occ.str(), std::ofstream::out);
-      for (auto i : modelspace.all_orbits)
-      {
-        Orbit& oi = modelspace.GetOrbit(i);
-        if ( std::abs(oi.occ_nat)>1e-6 )
-        {
-          file_occ << std::setw(wint) << oi.n << std::setw(wint) << oi.l << std::setw(wint) << oi.j2 << std::setw(wint) << oi.tz2
-                   << std::setw(wdouble) << std::setiosflags(std::ios::fixed) << std::setprecision(pdouble) << std::scientific << oi.occ_nat << std::endl;
-        }
-      }
-      file_occ.close();
-    }
-
-    bool filesucess = false;
-    if (basis == "HF")
-    {
-       filesucess = hf.C.save(intfile+"C.mat");
-    }
-    else if (basis == "NAT")
-    {
-       filesucess = hf.C_HO2NAT.save(intfile+"C.mat");
-    }
-
-
-
-//    bool filesucess = hf.C.save(intfile+"C.mat");
-    if (filesucess == false)
-    {
-      std::cout<<"Couldn't save HF coefficient matrix."<<std::endl;
-    }
-    // std::cout << "writing Omega to " << intfile << "_omega.op" << std::endl;
-    // rw.WriteOperatorHuman(imsrgsolver.Omega.back(),intfile+"_omega.op");
-  }
-
-
-
-  if (IMSRG3)
-  {
-    std::cout << "Norm of 3-body = " << imsrgsolver.GetH_s().ThreeBodyNorm() << std::endl;
-  }
   Hbare.PrintTimes();
 
   return 0;
