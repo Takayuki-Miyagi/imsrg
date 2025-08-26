@@ -167,6 +167,7 @@ void HFMBPT::DiagonalizeRho()
 
     Occ(orbvec) = arma::reverse(eig); // reverse so NAT orbits ordered by descending occupation.
     C_HF2NAT.submat(orbvec, orbvec) = arma::reverse(vec, 1); // "1" means reverse elements in each row
+
 //    std::cout << "1-body channel ";
 //    for ( auto x : it.first ) std::cout << x << " ";
 //    std::cout << "  : " << std::endl << Occ(orbvec) << std::endl;

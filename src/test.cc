@@ -315,40 +315,45 @@ int main(int argc, char** argv)
     Hbare += BetaCM * imsrg_util::OperatorFromString( modelspace, hcm_opname.str());
   }
 
+  Operator rho = Operator(modelspace,0,0,0,1);
+  rw.Read_me1j(density_file, rho, eMax, eMax);
+  arma::mat C;
+  arma::vec Occ;
+  bool success = false;
+  success = arma::eig_sym(Occ, C, rho.OneBody); // eigenvalues of rho (i.e. occupations) are in ascending order
+  Occ = arma::reverse(Occ);
+  C = arma::reverse(C,1);
+  arma::mat tmp = (C.each_row() % Occ.t()) * C.t();
+
+  //for (auto& it : Hbare.OneBodyChannels){
+  //  std::cout << "l=" << it.first[0] << ", j2=" << it.first[1] << ", tz2=" << it.first[2] << std::endl;
+  //  arma::uvec orbvec(std::vector<index_t>(it.second.begin(),it.second.end()));
+  //  std::cout << "rho (read): " << std::endl;
+  //  std::cout << rho.OneBody.submat(orbvec, orbvec) << std::endl;
+  //  //std::cout << "Occ (diag): " << std::endl;
+  //  //std::cout << Occ.elem(orbvec) << std::endl;
+  //  std::cout << tmp.submat(orbvec, orbvec) << std::endl;
+  //}
+  std::map<std::array<int, 4>,double> hole_map;
+  for ( auto i : modelspace.all_orbits) {
+    Orbit& oi = modelspace.GetOrbit(i);
+    hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = Occ(i);
+  }
+  modelspace.Init(eMax, hole_map, valence_space);
+
   std::cout << "Creating HF" << std::endl;
   HFMBPT hf(Hbare); // HFMBPT inherits from HartreeFock, so this works for HF and NAT bases.
-  Operator rho = Operator(modelspace,0,0,0,1);
+  hf.rho = rho.OneBody;
+  hf.Occ = Occ;
   Operator& HNO = Hbare; // The reference & means we overwrite Hbare and save some memory
   int hno_particle_rank = 2;
 
-  rw.Read_me1j(density_file, rho, eMax, eMax);
   if(me1j_file != "none" and me2jp_file != "none"){
     HNO.Erase();
     rw.Read_me1j(me1j_file, HNO, eMax, eMax);
     rw.Read_me2jp(me2jp_file, HNO, eMax, 2*eMax, eMax);
-    //std::map<std::array<int, 4>,double> hole_map;
-    //for ( auto i : modelspace.all_orbits) {
-    //  Orbit& oi = modelspace.GetOrbit(i);
-    //  hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = rho.OneBody(i);
-    //}
-    //modelspace.Init(eMax, hole_map, valence_space);
   }
   else {
-    arma::mat C;
-    arma::vec Occ;
-    bool success = false;
-    success = arma::eig_sym(Occ, C, rho.OneBody); // eigenvalues of rho (i.e. occupations) are in ascending order
-    Occ = arma::reverse(Occ);
-    C = arma::reverse(C, 1);
-    std::map<std::array<int, 4>,double> hole_map;
-    for ( auto i : modelspace.all_orbits) {
-      Orbit& oi = modelspace.GetOrbit(i);
-      hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = Occ(i);
-    }
-    modelspace.Init(eMax, hole_map, valence_space);
-    hf.Occ = Occ;
-
-    hf.rho = rho.OneBody;
     hf.BuildMonopoleV();
     if(Hbare.GetParticleRank()>2) hf.BuildMonopoleV3();
 
@@ -371,18 +376,32 @@ int main(int argc, char** argv)
         hf.Occ.elem(orbvec) = tmp_occ;
       }
     }
+
+    for ( auto i : modelspace.all_orbits) {
+      Orbit& oi = modelspace.GetOrbit(i);
+      hole_map[{oi.n, oi.l, oi.j2, oi.tz2}] = hf.Occ(i);
+    }
+    modelspace.Init(eMax, hole_map, valence_space);
+    std::vector<double> occvec;
+    for (auto& h : modelspace.holes) occvec.push_back(modelspace.GetOrbit(h).occ);
+    hf.holeorbs = arma::uvec( std::vector<index_t>(modelspace.holes.begin(),modelspace.holes.end()));
+    hf.hole_occ = arma::rowvec(occvec);
     hf.C_HO2NAT = hf.C_HF2NAT;
     HNO = hf.GetNormalOrderedH(hf.C_HO2NAT, hno_particle_rank);
   }
-  for (auto& it : HNO.OneBodyChannels){
-    arma::uvec orbvec(std::vector<index_t>(it.second.begin(),it.second.end()));
-    std::cout << "F: " << std::endl;
-    arma::mat tmp = HNO.OneBody.submat(orbvec, orbvec);
-    std::cout << tmp << std::endl;
-    std::cout << "rho: " << std::endl;
-    tmp = rho.OneBody.submat(orbvec, orbvec);
-    std::cout << tmp << std::endl;
-  }
+  //for (auto& it : HNO.OneBodyChannels){
+  //  std::cout << "l=" << it.first[0] << ", j2=" << it.first[1] << ", tz2=" << it.first[2] << std::endl;
+  //  arma::uvec orbvec(std::vector<index_t>(it.second.begin(),it.second.end()));
+  //  std::cout << "F: " << std::endl;
+  //  arma::mat tmp = HNO.OneBody.submat(orbvec, orbvec);
+  //  std::cout << tmp << std::endl;
+  //  std::cout << "rho: " << std::endl;
+  //  tmp = rho.OneBody.submat(orbvec, orbvec);
+  //  std::cout << tmp << std::endl;
+  //  std::cout << "C: " << std::endl;
+  //  tmp = hf.C_HO2NAT.submat(orbvec, orbvec);
+  //  std::cout << tmp.t() << std::endl;
+  //}
   std::cout << basis << " Single particle energies and wave functions:" << std::endl;
   std::cout << std::fixed << std::setw(3) << "i" << ": " << std::setw(3) << "n" << " " << std::setw(3) << "l" << " "
        << std::setw(3) << "2j" << " " << std::setw(3) << "2tz" << "   " << std::setw(12) << "SPE" << " " << std::setw(12) << "occ."
@@ -863,11 +882,11 @@ int main(int argc, char** argv)
   Operator Hs = imsrgsolver.GetH_s();
 
   Hs = Hs.UndoNormalOrdering();
-  //hf.C_HO2NAT = hf.C_HO2NAT.t(); // NAT --> HO
-  //Hs = hf.TransformHOToNATBasis(Hs);
-  rw.Write_me1j(me1j_file + ".out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetLmax());
-  rw.Write_me2jp(me2jp_file + ".out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetE2max(), Hs.modelspace->GetLmax());
-  //hf.C_HO2NAT = hf.C_HO2NAT.t(); // HO --> NAT
+  hf.C_HO2NAT = hf.C_HO2NAT.t(); // NAT --> HO
+  Hs = hf.TransformHOToNATBasis(Hs);
+  rw.Write_me1j(me1j_file + "_me1j.out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetLmax());
+  rw.Write_me2jp(me2jp_file + "_me2jp.out", Hs, Hs.modelspace->GetEmax(), Hs.modelspace->GetE2max(), Hs.modelspace->GetLmax());
+  hf.C_HO2NAT = hf.C_HO2NAT.t(); // HO --> NAT
 
 
 //  if (modelspace.valence.size() > 0 )
