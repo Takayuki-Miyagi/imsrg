@@ -186,6 +186,11 @@ namespace Commutator
     imsrg3_no_qqq = tf;
   }
 
+  void SetIMSRG3Onlyvvv(bool tf)
+  {
+    imsrg3_only_vvv = tf;
+  }
+
   void SetIMSRG3valence2b(bool tf)
   {
     imsrg3_valence_2b = tf;

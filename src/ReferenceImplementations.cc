@@ -1041,6 +1041,7 @@ namespace ReferenceImplementations
   /// Expression:    ZJ1ijkl = 1/6 sum_abcd sum_J2J3  (na nb nc(1-nd) - (1-na)(1-nb)(1-nc)nd) (2J3+1)/(2J1+1)
   ///                                       *  ( XJ1J2J3_ijdabc YJ2J1J3_abckld  - YJ1J2J3_ijdabc XJ2J1J3_abckld )
   ///
+  ///  OVERALL MINUS SIGN ERROR FOUND AND CORRECTED ON Sep 3 2025
   void comm332_ppph_hhhpss(const Operator &X, const Operator &Y, Operator &Z)
   {
     double t_start = omp_get_wtime();
@@ -1101,7 +1102,8 @@ namespace ReferenceImplementations
                 {
                   Orbit &od = Z.modelspace->GetOrbit(d);
 
-                  if (std::abs(oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ) < 1e-7)
+//                  if (std::abs(oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ) < 1e-7)
+                  if (std::abs((1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ - oa.occ * ob.occ * oc.occ * (1 - od.occ) ) < 1e-7)
                     continue;
                   if ((oi.l + oj.l + od.l + oa.l + ob.l + oc.l) % 2 > 0)
                     continue;
@@ -1121,7 +1123,8 @@ namespace ReferenceImplementations
                       double yijdabc = Y3.GetME_pn(J1, J2, twoJ, i, j, d, a, b, c);
                       double xabckld = X3.GetME_pn(J2, J1, twoJ, a, b, c, k, l, d);
                       double yabckld = Y3.GetME_pn(J2, J1, twoJ, a, b, c, k, l, d);
-                      zijkl += 1. / 6 * (oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ) * (twoJ + 1.) / (2 * J1 + 1) * (xijdabc * yabckld - yijdabc * xabckld);
+//                      zijkl += 1. / 6 * (oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ) * (twoJ + 1.) / (2 * J1 + 1) * (xijdabc * yabckld - yijdabc * xabckld);
+                      zijkl += 1. / 6 * ((1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ - oa.occ * ob.occ * oc.occ * (1 - od.occ) ) * (twoJ + 1.) / (2 * J1 + 1) * (xijdabc * yabckld - yijdabc * xabckld);
                     } // twoJ
                   } // J2
                 } // d
@@ -3973,6 +3976,7 @@ namespace ReferenceImplementations
   ///                                       *  ( X^(J1j1,J3j1)0_ijdabc Y^(J3j1,J2j2)Lamda_abckld
   ///                                          - Y^(J1j1,J3j2)Lamda_ijdabc X^(J3j2,J2j2)0_abckld )
   ///
+  /// OVERALL MINUS SIGN ERROR CORRECTED Sep 3 2025 (SRS)
   void comm332_ppph_hhhpst(const Operator &X, const Operator &Y, Operator &Z)
   {
     double t_start = omp_get_wtime();
@@ -4027,7 +4031,8 @@ namespace ReferenceImplementations
                 for (size_t d : Z.modelspace->all_orbits)
                 {
                   Orbit &od = Z.modelspace->GetOrbit(d);
-                  double occfactor = oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ;
+//                  double occfactor = oa.occ * ob.occ * oc.occ * (1 - od.occ) - (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ;
+                  double occfactor = (1 - oa.occ) * (1 - ob.occ) * (1 - oc.occ) * od.occ - oa.occ * ob.occ * oc.occ * (1 - od.occ) ;
                   if (std::abs(occfactor) < 1e-7)
                     continue;
                   // if ((oi.l + oj.l + od.l + oa.l + ob.l + oc.l) % 2 > 0)

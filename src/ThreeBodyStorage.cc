@@ -1,6 +1,7 @@
 
 
 #include "ThreeBodyStorage.hh"
+#include "AngMom.hh"
 
 
 
@@ -95,8 +96,17 @@ ThreeBodyStorage::Permutation ThreeBodyStorage::SortOrbits(int a_in, int b_in, i
 //*******************************************************************
 double ThreeBodyStorage::RecouplingCoefficient(ThreeBodyStorage::Permutation recoupling_case, double ja, double jb, double jc, int Jab_in, int Jab, int twoJ) const
 {
-   if ( std::abs(int(ja-jb))>Jab  or int(ja+jb)<Jab) return 0;
-   if ( std::abs(int(jc-twoJ/2.))>Jab  or int(jc+twoJ/2.)<Jab) return 0;
+//   if ( std::abs(int(ja-jb))>Jab  or int(ja+jb)<Jab) return 0;
+//   if ( std::abs(int(jc-twoJ/2.))>Jab  or int(jc+twoJ/2.)<Jab) return 0;
+   if ( not ( AngMom::Triangle(ja,jb,Jab) and AngMom::Triangle(jc,twoJ/2.,Jab) )  ) return 0;
+   if ( recoupling_case==BCA or recoupling_case==CBA)
+   {
+     if ( not ( AngMom::Triangle(ja,twoJ/2.,Jab_in) and AngMom::Triangle(jc,jb,Jab_in) ) ) return 0;
+   }
+   else if ( recoupling_case==CAB or recoupling_case==ACB)
+   {
+     if ( not ( AngMom::Triangle(jb,twoJ/2.,Jab_in) and AngMom::Triangle(jc,ja,Jab_in) ) ) return 0;
+   }
    switch (recoupling_case)
    {
     case ABC: return Jab==Jab_in ? 1 : 0;

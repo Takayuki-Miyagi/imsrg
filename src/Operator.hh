@@ -197,7 +197,7 @@ class Operator
 
   Operator DoIsospinAveraging() const;
 
-  // In principle, these methods should probably be factorized out, but I don't know where to put them...
+  // In principle, these methods should probably be factored out, but I don't know where to put them...
   double GetMP2_Energy();
 //  double GetMP3_Energy();
   std::array<double,3> GetMP3_Energy();
@@ -224,6 +224,7 @@ class Operator
   void PrintTwoBody() const {TwoBody.PrintAllMatrices() ;};
   void PrintTwoBody(int ch) const {TwoBody.PrintMatrix(ch,ch);};
   void PrintTwoBody(int ch_bra, int ch_ket) const {TwoBody.PrintMatrix(ch_bra,ch_ket);};
+  void PrintThreeBody() const {ThreeBody.Print();};
 
 //  arma::vec GetMP2_Impacts() const;
 };

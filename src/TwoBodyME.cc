@@ -196,7 +196,7 @@ void TwoBodyME::SetTBME(int ch_bra, int ch_ket, int a, int b, int c, int d, doub
      std::swap(ch_bra, ch_ket);
      std::swap(bra_ind, ket_ind);
      phase *= modelspace->phase(tbc_bra.J-tbc_ket.J);
-     if (antihermitian) phase *= -1;
+     if (antihermitian) phase *= -1; //additional fix from Takayuki
    }
 // end new lines
 

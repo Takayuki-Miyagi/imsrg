@@ -1626,15 +1626,22 @@ Operator FormfactorAtQ(ModelSpace& modelspace, double q, std::string pn)
 }
 
 
+// Spin-orbit charge radius correction, originally described
+// by Ong et al PRC 82 014320. That expression contained an error,
+// as pointed out by Martin Hoferichter.
+// The corrected expression is given in Heinz et al PRC 111, 0343411.
+// The difference was mu_i - Q_i  ->  mu_i - Q_i/2.
 Operator RpSpinOrbitCorrection(ModelSpace& modelspace)
 {
   Operator dr_so(modelspace,0,0,0,2);
   double M2 = M_NUCLEON*M_NUCLEON/(HBARC*HBARC);
   int norb = modelspace.GetNumberOrbits();
+  double mup = 2.793;
+  double mun = -1.913;
   for (int i=0;i<norb;i++)
   {
     Orbit& oi = modelspace.GetOrbit(i);
-    double mu_i = oi.tz2<0 ? 1.79 : -1.91;
+    double mu_i = oi.tz2<0 ? mup-1./2 : mun;
     int kappa = oi.j2 < 2*oi.l ? oi.l : -(oi.l+1);
     dr_so.OneBody(i,i) = -mu_i/M2*(kappa+1);
   }

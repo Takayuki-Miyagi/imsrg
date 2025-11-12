@@ -752,9 +752,6 @@ bool UnitTest::TestCommutators_Tensor(Operator& X, Operator& Y)
 
 
 
-
-
-
   if (all_good)
   {
     std::cout << " Done with " << __func__ << " and all is well" << std::endl;
@@ -3641,6 +3638,8 @@ bool UnitTest::Mscheme_Test_comm232ss(const Operator &X, const Operator &Y)
 /// M-Scheme Formula:
 //
 // Z_ijkl = 1/6 * sum_abcd (n_a*n_b*n_c*nbar_d - nbar_a*nbar_b*nbar_c*n_d) * [  Xijdabc*Yabckld - Yijdabc*Xabckld  ]
+// THIS HAS AN OVERALL MINUS SIGN ERROR! (Thanks to Victor Vaida for pointing this out)
+// Corrected Sep 3 2025. SRS.
 //
 bool UnitTest::Mscheme_Test_comm332_ppph_hhhpss(const Operator &X, const Operator &Y) // test not yet implemented
 {
@@ -3717,7 +3716,8 @@ bool UnitTest::Mscheme_Test_comm332_ppph_hhhpss(const Operator &X, const Operato
                       {
                         Orbit &od = X.modelspace->GetOrbit(d);
                         double nd = od.occ;
-                        double occfactor = na * nb * nc * (1 - nd) - (1 - na) * (1 - nb) * (1 - nc) * nd;
+//                        double occfactor = na * nb * nc * (1 - nd) - (1 - na) * (1 - nb) * (1 - nc) * nd;
+                        double occfactor = (1 - na) * (1 - nb) * (1 - nc) * nd -  na * nb * nc * (1 - nd); // Corrected Sep 3 2025 (SRS) 
 
                         // These make the contribution trivially zero, so I skip them in the name of efficiently
                         // testing the more complicated part. Commenting them out allows to check that the trivial stuff is right.
