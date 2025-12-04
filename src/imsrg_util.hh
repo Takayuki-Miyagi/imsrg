@@ -70,6 +70,8 @@ namespace imsrg_util
  Operator Rm2_corrected_Op(ModelSpace& modelspace, int A, int Z);
  Operator R2_p1_Op(ModelSpace& modelspace);
  Operator R2_1body_Op(ModelSpace& modelspace, std::string option);
+ Operator R4_1body_Op(ModelSpace& modelspace, std::string option); // Added by T. Miyagi
+ Operator Eccentricity_Op(ModelSpace& modelspace, int rank, int rank_n, double e_p, double e_n); // Added by T. Miyagi
  Operator R2_p2_Op(ModelSpace& modelspace);
  Operator R2_2body_Op(ModelSpace& modelspace, std::string option);
  Operator DensityAtR(ModelSpace& modelspace, double R, std::string pn);
@@ -199,7 +201,7 @@ namespace imsrg_util
  {
    return v1;
  }
- 
+
  template <typename T, typename... Args>
  T VectorUnion(const T& v1, const T& v2, Args... args)
  {
