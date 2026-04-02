@@ -5458,17 +5458,40 @@ Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::set<i
       (oi.tz2==-1) ? e_1 = e_p : e_1 = e_n;
       (oj.tz2==-1) ? e_2 = e_p : e_2 = e_n;
       me = pow(2*Jij+1, 0.5) * pow(2*Jkl+1, 0.5) * pow(2*lambda+1, 0.5) * AngMom::NineJ(oi.j2*0.5, oj.j2*0.5, Jij, ok.j2*0.5, ol.j2*0.5, Jkl, n, n, lambda);
-      //me *= pow(-1, (oi.j2-1)*0.5) * pow((oi.j2+1)*(ok.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oi.j2*0.5, n, ok.j2*0.5, -0.5, 0, 0.5);
-      //me *= pow(-1, (oj.j2-1)*0.5) * pow((oj.j2+1)*(ol.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oj.j2*0.5, n, ol.j2*0.5, -0.5, 0, 0.5);
-      // BUG FIXED
       me *= pow(-1, (ok.j2-1)*0.5+n) * pow((oi.j2+1)*(ok.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oi.j2*0.5, n, ok.j2*0.5, -0.5, 0, 0.5);
       me *= pow(-1, (ol.j2-1)*0.5+n) * pow((oj.j2+1)*(ol.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oj.j2*0.5, n, ol.j2*0.5, -0.5, 0, 0.5);
-      // BUG FIXED
       me *= RadialIntegral_RpowK(oi.n, oi.l, ok.n, ok.l, n) * e_1;
       me *= RadialIntegral_RpowK(oj.n, oj.l, ol.n, ol.l, n) * e_2;
       me *= oscillator_b_factor;
+      me *= 2.0;
+      //std::cout
+      //  << pow(2*Jij+1, 0.5) * pow(2*Jkl+1, 0.5) * pow(2*lambda+1, 0.5) * AngMom::NineJ(oi.j2*0.5, oj.j2*0.5, Jij, ok.j2*0.5, ol.j2*0.5, Jkl, n, n, lambda) << " "
+      //  << pow(-1, (ok.j2-1)*0.5+n) * pow((oi.j2+1)*(ok.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oi.j2*0.5, n, ok.j2*0.5, -0.5, 0, 0.5) << " "
+      //  << pow(-1, (ol.j2-1)*0.5+n) * pow((oj.j2+1)*(ol.j2+1)*(2*n+1) / (4.0*PI), 0.5) * AngMom::ThreeJ(oj.j2*0.5, n, ol.j2*0.5, -0.5, 0, 0.5) << " "
+      //  << RadialIntegral_RpowK(oi.n, oi.l, ok.n, ok.l, n) << " "
+      //  << RadialIntegral_RpowK(oj.n, oj.l, ol.n, ol.l, n) << " "
+      //  << oscillator_b_factor << std::endl;
       return me;
     };
+
+    double c2 = std::pow(-1, rank_n) * exp(lgamma(2*rank_n+2)-2*rank_n*LOG2-2*lgamma(rank_n+1)) / (4*PI);
+    double oscillator_b_factor = std::pow(HBARC*HBARC/M_NUCLEON/modelspace.GetHbarOmega(),rank_n);
+    int norbits = modelspace.GetNumberOrbits();
+    for(int p=0; p<norbits; ++p) {
+      Orbit& o_p = modelspace.GetOrbit(p);
+      for ( int q : op.OneBodyChannels.at({o_p.l, o_p.j2, o_p.tz2}) ) {
+        if (q<p) continue;
+        Orbit& o_q = modelspace.GetOrbit(q);
+        if((o_p.l+o_q.l+rank)%2 == 1) continue;
+        double e = 0.0;
+        (o_p.tz2==-1) ? e = e_p : e = e_n;
+        double integral = RadialIntegral_RpowK(o_p.n, o_p.l, o_q.n, o_q.l, 2*rank_n) * oscillator_b_factor * e;
+        double me = pow(o_p.j2+1, 0.5) * pow(o_q.j2+1, 0.5) * (2*rank_n+1) * AngMom::CG(rank_n, 0, rank_n, 0, rank, 0) / (4.0*PI);
+        me *= std::pow(-1, (o_q.j2-1)*0.5+rank) * AngMom::ThreeJ(o_p.j2*0.5, rank, o_q.j2*0.5, -0.5, 0, 0.5) * integral;
+        op.OneBody(p,q) = me;
+        op.OneBody(q,p) = std::pow(-1, (o_p.j2-o_q.j2)*0.5) * me;
+      }
+    }
 
     for(auto& itmat: op.TwoBody.MatEl)
     {
@@ -5489,21 +5512,21 @@ Operator FourierBesselCoeff(ModelSpace& modelspace, int nu, double R, std::set<i
           double me = me_func(oi, oj, ok, ol, Jij, Jkl, rank_n, rank) - me_func(oi, oj, ol, ok, Jij, Jkl, rank_n, rank) * modelspace.phase((ok.j2+ol.j2)/2-Jkl);
           if(bra.p==bra.q) me /= sqrt(2.0);
           if(ket.p==ket.q) me /= sqrt(2.0);
-          //std::cout << oi.n << " " << oi.l << " " << oi.j2 << " " << oi.tz2 << std::endl;
-          //std::cout << oj.n << " " << oj.l << " " << oj.j2 << " " << oj.tz2 << std::endl;
-          //std::cout << ok.n << " " << ok.l << " " << ok.j2 << " " << ok.tz2 << std::endl;
-          //std::cout << ol.n << " " << ol.l << " " << ol.j2 << " " << ol.tz2 << std::endl;
-          //std::cout << Jij << " " << Jkl << " " << rank_n << " " << rank << " " << me << std::endl;
           op.TwoBody.SetTBME(itmat.first[0], itmat.first[1], ibra, iket, me);
         }
       }
     }
+
+
     if(rank==0) {
       op.is_reduced = true;
       op.MakeNotReduced();
     }
+    op /= c2;
+    op *= AngMom::CG(rank_n, rank_n, rank_n, -rank_n, rank, 0);
     return op;
   }
+
 
 /// Returns
 /// \f[
